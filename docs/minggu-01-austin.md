@@ -52,8 +52,4 @@ Lakukan satu per satu, catat pesan errornya, lalu kembalikan:
 
 ### FIX — Perbaiki proyek yang cacat (30 menit)
 
-*(belum dikerjakan)*
-
 ### BUILD — Fondasi proyek kelompok (sisa waktu + tugas terstruktur)
-
-*(lihat progres tim di README kelompok — sebagian besar checklist BUILD dikerjakan bersama)*
