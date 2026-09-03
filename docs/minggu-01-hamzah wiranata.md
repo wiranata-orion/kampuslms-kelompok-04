@@ -42,6 +42,16 @@ Jawaban
         return view('welcome');
     });
    ```
+   Ubah menjadi
+   ```php
+   Route::get('/', function () {
+    return view('halo');
+   });
+   ```
+
+   hasilnya error setelah mengubah menjadi `halo`, karena di view adanya file bernama `welcome.blade.php`, dan `halo.blade.php` gak ada, kalo ada gak bakal eror
+
+
 4. `php artisan route:list` dan `route/web.php`
 
     - `route/web.php`
