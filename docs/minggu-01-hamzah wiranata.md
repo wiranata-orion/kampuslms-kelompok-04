@@ -49,7 +49,7 @@ Jawaban
    });
    ```
 
-   hasilnya error setelah mengubah menjadi `halo`
+   hasilnya error setelah mengubah menjadi `halo`, karena di view adanya file bernama `welcome.blade.php`, dan `halo.blade.php` gak ada, kalo ada gak bakal eror
 
 
 4. `php artisan route:list` dan `route/web.php`
