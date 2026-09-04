@@ -8,6 +8,7 @@
         body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: #f8fafc; color: #1e293b; line-height: 1.5; }
         header { background: #0f172a; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
         header a { color: white; text-decoration: none; font-weight: 600; margin-left: 1.5rem; }
+        header a.active { text-decoration: underline; }
         main { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
         .card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .badge { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; margin-right: 0.35rem; }
@@ -27,13 +28,22 @@
     <header>
         <div><strong>LMS Kampus</strong></div>
         <nav>
-            {{-- Navigasi menggunakan rute courses.index --}}
-            <a href="{{ route('courses.index') }}">Daftar Mata Kuliah</a>
-            {{-- Tombol tambah untuk rute courses.create --}}
-            <a href="{{ route('courses.create') }}">+ Tambah Mata Kuliah</a>
+            <a href="{{ route('dashboard') }}"
+               class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                Dashboard
+            </a>
+
+            <a href="{{ route('courses.index') }}"
+               class="{{ request()->routeIs('courses.*') ? 'active' : '' }}">
+                Mata Kuliah
+            </a>
+
+            {{-- Tombol tambah, hanya tampil jika route courses.create sudah didaftarkan --}}
+            @if (Route::has('courses.create'))
+                <a href="{{ route('courses.create') }}">+ Tambah Mata Kuliah</a>
+            @endif
         </nav>
     </header>
- 
 
     <main>
         {{ $slot }}

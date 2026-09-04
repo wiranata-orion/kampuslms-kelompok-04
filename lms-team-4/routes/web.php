@@ -5,7 +5,14 @@ use App\Http\Controllers\CourseController;
 
 // Pengalihan dari halaman utama '/' langsung ke daftar mata kuliah
 Route::get('/', function () {
-    return redirect()->route('courses.index');
+    return redirect()->route('dashboard');
+});
+
+// Dashboard / halaman utama (sementara memakai file about.blade.php)
+Route::view('/dashboard', 'about')->name('dashboard');
+
+Route::get('/tentang', function () {
+    return view('tentang');
 });
 
 // Group modul courses (prefix URI 'courses' dan prefix nama rute 'courses.')
@@ -33,3 +40,20 @@ Route::prefix('courses')->name('courses.')->group(function () {
     // 7. Menghapus data mata kuliah (Admin)
     Route::delete('/{id}', [CourseController::class, 'destroy'])->name('destroy');
 });
+
+// Route::controller(CourseController::class)
+//     ->prefix('courses')
+//     ->name('courses.')
+//     ->group(function () {
+//         Route::get('/', 'index')->name('index');
+//         Route::get('/{course}', 'show')->name('show');
+
+//         // Belum ada method-nya di CourseController — aktifkan setelah dibuat.
+//         // Selama masih di-comment, tombol "+ Tambah Mata Kuliah" di navbar
+//         // otomatis tersembunyi berkat pengecekan Route::has() di layout.
+//         // Route::get('/create', 'create')->name('create');
+//         // Route::post('/', 'store')->name('store');
+//         // Route::get('/{course}/edit', 'edit')->name('edit');
+//         // Route::match(['put', 'patch'], '/{course}', 'update')->name('update');
+//         // Route::delete('/{course}', 'destroy')->name('destroy');
+//     });
