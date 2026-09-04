@@ -1,18 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
+<x-layout title="Dashboard - LMS Kampus">
+    <div class="card">
+        <h1>Selamat Datang di LMS Kampus</h1>
+        <p>
+            Gunakan menu navigasi di atas untuk mengakses daftar mata kuliah
+            beserta materi, tugas, pengumpulan, dan nilai.
+        </p>
+    </div>
 
-<head>
-    
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    
-    <title>About</title>
-    <h1>About Us</h1>
-    <h2>Austin anjay</h2>
-    <h2>Winata anjay</h2>
-</head>
-<body>
-    
-</body>
-</html>
+    <div class="card">
+        <h2>Mulai dari sini</h2>
+        <div class="action-group">
+            <a href="{{ route('courses.index') }}" class="btn">
+                Lihat Daftar Mata Kuliah
+            </a>
+        </div>
+    </div>
+</x-layout>
