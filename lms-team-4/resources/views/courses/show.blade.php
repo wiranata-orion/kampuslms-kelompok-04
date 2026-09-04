@@ -24,4 +24,4 @@
         <h4 style="margin-bottom: 0.5rem; margin-top: 1.5rem;">Deskripsi Mata Kuliah</h4>
         <p style="color: #334155; margin-top: 0;">{{ $course['deskripsi'] }}</p>
     </div>
-</x-layout>
+</x-layout> 

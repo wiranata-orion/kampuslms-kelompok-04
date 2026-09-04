@@ -46,5 +46,5 @@
         <div class="card">
             <p style="color: #64748b; margin: 0;">Belum ada mata kuliah yang tersedia.</p>
         </div>
-    @endforelse
+    @endforelse 
 </x-layout>
