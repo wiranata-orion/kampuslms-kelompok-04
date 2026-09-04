@@ -3,9 +3,14 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CourseController;
 
+Route::get('/about', function () {
+    return view('about');
+});
+
 Route::get('/', function () {
     return view('welcome');
 });
+
 Route::get('/tentang', function () {
     return view('tentang');
 });
