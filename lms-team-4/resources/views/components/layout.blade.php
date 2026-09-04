@@ -33,8 +33,8 @@
             <a href="{{ route('courses.create') }}">+ Tambah Mata Kuliah</a>
         </nav>
     </header>
+ 
 
-    
     <main>
         {{ $slot }}
     </main>
