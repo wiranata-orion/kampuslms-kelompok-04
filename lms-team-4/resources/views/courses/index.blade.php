@@ -1,50 +1,37 @@
-<x-layout>
-    <x-slot:title>
-        {{ $title }}
-    </x-slot:title>
+<x-layout title="Daftar Mata Kuliah">
+    <h1>Daftar Mata Kuliah</h1>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-        <h2 style="margin: 0;">{{ $title }}</h2>
-        <a href="{{ route('courses.create') }}" class="btn btn-success">+ Tambah Mata Kuliah</a>
-    </div>
+    @if (session('success'))
+        <p>{{ session('success') }}</p>
+    @endif
 
-    @forelse ($courses as $course)
-        <div class="card">
-            <h3 style="margin-top: 0; margin-bottom: 0.5rem;">
-                {{ $course['nama'] }} ({{ $course['kode'] }})
-            </h3>
+    <a href="{{ route('courses.create') }}">+ Tambah Mata Kuliah</a>
 
-            <p style="margin-bottom: 0.75rem;">
-                <span class="badge">{{ $course['sks'] }} SKS</span>
-                <span class="badge">Semester {{ $course['semester'] }}</span>
-            </p>
-
-            <p style="margin-bottom: 1rem; color: #475569;">
-                Dosen Pengampu: <strong>{{ $course['dosen'] }}</strong>
-            </p>
-
-            <div class="action-group">
-                {{-- Rute courses.show --}}
-                <a href="{{ route('courses.show', ['id' => $course['id']]) }}" class="btn">
-                    Lihat Detail
-                </a>
-
-                {{-- Rute courses.edit --}}
-                <a href="{{ route('courses.edit', ['id' => $course['id']]) }}" class="btn btn-warning">
-                    Edit
-                </a>
-
-                {{-- Form DELETE untuk rute courses.destroy --}}
-                <form action="{{ route('courses.destroy', ['id' => $course['id']]) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus mata kuliah ini?')">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Hapus</button>
-                </form>
-            </div>
-        </div>
-    @empty
-        <div class="card">
-            <p style="color: #64748b; margin: 0;">Belum ada mata kuliah yang tersedia.</p>
-        </div>
-    @endforelse 
+    <table border="1">
+        <tr>
+            <th>Kode</th>
+            <th>Nama</th>
+            <th>SKS</th>
+            <th>Dosen</th>
+            <th>Status</th>
+            <th>Aksi</th>
+        </tr>
+        @foreach ($courses as $course)
+            <tr>
+                <td>{{ $course->code }}</td>
+                <td><a href="{{ route('courses.show', $course) }}">{{ $course->name }}</a></td>
+                <td>{{ $course->sks }}</td>
+                <td>{{ $course->lecturer->name ?? '-' }}</td>
+                <td>{{ $course->status }}</td>
+                <td>
+                    <a href="{{ route('courses.edit', $course) }}">Edit</a>
+                    <form action="{{ route('courses.destroy', $course) }}" method="POST" style="display:inline">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" onclick="return confirm('Yakin hapus mata kuliah ini?')">Hapus</button>
+                    </form>
+                </td>
+            </tr>
+        @endforeach
+    </table>
 </x-layout>

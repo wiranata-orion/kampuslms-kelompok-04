@@ -61,3 +61,6 @@ Route yang ditelusuri: `/tentang`
 - [x] `courses/show.blade.php`, detail satu mata kuliah
 - [ ] Halaman 404 kustom (`resources/views/errors/404.blade.php`), belum dibuat
 - [x] Commit dari lebih dari satu anggota, sudah ada commit dari Jeshua dan anggota lain di repo
+
+
+http://127.0.0.1:8000

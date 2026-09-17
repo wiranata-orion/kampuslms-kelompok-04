@@ -1,27 +1,18 @@
-<x-layout>
-    <x-slot:title>
-        {{ $title }} - {{ $course['nama'] }}
-    </x-slot:title>
+<x-layout title="Detail Mata Kuliah">
+    <h1>{{ $course->name }}</h1>
+    <p>Kode: {{ $course->code }}</p>
+    <p>SKS: {{ $course->sks }}</p>
+    <p>Deskripsi: {{ $course->description }}</p>
+    <p>Dosen: {{ $course->lecturer->name ?? '-' }}</p>
+    <p>Status: {{ $course->status }}</p>
 
-    <a href="{{ route('courses.index') }}" class="back-link">&larr; Kembali ke Daftar Mata Kuliah</a>
+    <a href="{{ route('courses.edit', $course) }}">Edit</a>
 
-    <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <h2 style="margin-top: 0; margin-bottom: 0.5rem;">{{ $course['nama'] }}</h2>
-            <a href="{{ route('courses.edit', ['id' => $course['id']]) }}" class="btn btn-warning">
-                Edit Data
-            </a>
-        </div>
+    <form action="{{ route('courses.destroy', $course) }}" method="POST" style="display:inline">
+        @csrf
+        @method('DELETE')
+        <button type="submit" onclick="return confirm('Yakin hapus mata kuliah ini?')">Hapus</button>
+    </form>
 
-        <p style="margin-bottom: 1.5rem;">
-            <span class="badge">{{ $course['kode'] }}</span>
-            <span class="badge">{{ $course['sks'] }} SKS</span>
-            <span class="badge">Semester {{ $course['semester'] }}</span>
-        </p>
-
-        <p><strong>Dosen Pengampu:</strong> {{ $course['dosen'] }}</p>
-
-        <h4 style="margin-bottom: 0.5rem; margin-top: 1.5rem;">Deskripsi Mata Kuliah</h4>
-        <p style="color: #334155; margin-top: 0;">{{ $course['deskripsi'] }}</p>
-    </div>
-</x-layout> 
+    <a href="{{ route('courses.index') }}">Kembali ke daftar</a>
+</x-layout>

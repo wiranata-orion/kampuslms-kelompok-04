@@ -17,6 +17,7 @@ class Course extends Model
         'name',
         'description',
         'sks',
+
     ];
 
     protected function casts(): array
