@@ -6,16 +6,19 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
+
 class DemoAccountSeeder extends Seeder
 {
     public function run(): void
     {
+        $password = Hash::make(env('DEMO_ACCOUNT_PASSWORD'));
+
         // 1. Akun Demo Admin
         User::updateOrCreate(
             ['email' => 'admin@kampuslms.test'],
             [
                 'name' => 'Administrator Demo',
-                'password' => Hash::make('password'),
+                'password' => $password,
                 'role' => 'admin',
                 'nim_nip' => null,
                 'email_verified_at' => now(),
@@ -27,7 +30,7 @@ class DemoAccountSeeder extends Seeder
             ['email' => 'dosen@kampuslms.test'],
             [
                 'name' => 'Dosen Demo',
-                'password' => Hash::make('password'),
+                'password' => $password,
                 'role' => 'dosen',
                 'nim_nip' => '198801012022011001',
                 'email_verified_at' => now(),
@@ -39,7 +42,7 @@ class DemoAccountSeeder extends Seeder
             ['email' => 'mahasiswa@kampuslms.test'],
             [
                 'name' => 'Mahasiswa Demo', 
-                'password' => Hash::make('password'),
+                'password' => $password,
                 'role' => 'mahasiswa',
                 'nim_nip' => '10241001',
                 'email_verified_at' => now(),
