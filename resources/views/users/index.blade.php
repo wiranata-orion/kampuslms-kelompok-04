@@ -47,7 +47,5 @@
         @endforeach
     </table>
 
-    <div style="margin-top: 1rem;">
-        {{ $users->links() }}
-    </div>
+    <x-pagination :paginator="$users" />
 </x-layout>
