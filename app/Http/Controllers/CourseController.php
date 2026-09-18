@@ -5,16 +5,36 @@ namespace App\Http\Controllers;
 use App\Models\Course;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Http\Requests\StoreCourseRequest;
+use App\Http\Requests\UpdateCourseRequest;
 
 class CourseController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $courses = Course::with('lecturer')->get();
+        $search = trim((string) $request->query('search', ''));
+        $status = $request->query('status', '');
+
+        $courses = Course::query()
+            ->with('lecturer')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('code', 'like', "%{$search}%")
+                        ->orWhere('name', 'like', "%{$search}%");
+                });
+            })
+            ->when(in_array($status, ['draft', 'active', 'archived'], true), function ($query) use ($status) {
+                $query->where('status', $status);
+            })
+            ->orderBy('name')
+            ->paginate(15)
+            ->withQueryString();
 
         return view('courses.index', [
             'title' => 'Daftar Mata Kuliah',
             'courses' => $courses,
+            'search' => $search,
+            'status' => $status,
         ]);
     }
 
@@ -38,16 +58,9 @@ class CourseController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreCourseRequest $request)
     {
-        $validated = $request->validate([
-            'code' => 'required|string|unique:courses,code',
-            'name' => 'required|string',
-            'description' => 'required|string',
-            'sks' => 'required|integer|min:1|max:6',
-            'lecturer_id' => 'required|exists:users,id',
-            'status' => 'required|in:draft,active,archived',
-        ]);
+        $validated = $request->validated();
 
         $course = new Course();
         $course->code = $validated['code'];
@@ -72,16 +85,9 @@ class CourseController extends Controller
         ]);
     }
 
-    public function update(Request $request, Course $course)
+    public function update(UpdateCourseRequest $request, Course $course)
     {
-        $validated = $request->validate([
-            'code' => 'required|string|unique:courses,code,' . $course->id,
-            'name' => 'required|string',
-            'description' => 'required|string',
-            'sks' => 'required|integer|min:1|max:6',
-            'lecturer_id' => 'required|exists:users,id',
-            'status' => 'required|in:draft,active,archived',
-        ]);
+        $validated = $request->validated();
 
         $course->code = $validated['code'];
         $course->name = $validated['name'];

@@ -7,6 +7,20 @@
 
     <a href="{{ route('users.create') }}">+ Tambah Pengguna</a>
 
+    <form action="{{ route('users.index') }}" method="GET" style="margin: 1rem 0; display: flex; gap: 0.5rem;">
+        <input type="text" name="search" value="{{ $search }}" placeholder="Cari nama atau email...">
+
+        <select name="role">
+            <option value="">Semua Role</option>
+            <option value="admin" @selected($role === 'admin')>Admin</option>
+            <option value="dosen" @selected($role === 'dosen')>Dosen</option>
+            <option value="mahasiswa" @selected($role === 'mahasiswa')>Mahasiswa</option>
+        </select>
+
+        <button type="submit" class="btn">Cari</button>
+        <a href="{{ route('users.index') }}">Reset</a>
+    </form>
+
     <table border="1">
         <tr>
             <th>Nama</th>
@@ -32,4 +46,6 @@
             </tr>
         @endforeach
     </table>
+
+    <x-pagination :paginator="$users" />
 </x-layout>

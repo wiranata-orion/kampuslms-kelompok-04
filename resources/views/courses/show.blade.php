@@ -8,10 +8,13 @@
 
     <a href="{{ route('courses.edit', $course) }}">Edit</a>
 
+<dialog id="modal-hapus-{{ $course->id }}">
+    <p>Yakin nih mau dihapus? <strong>{{ $course->name }}</strong></p>
     <form action="{{ route('courses.destroy', $course) }}" method="POST" style="display:inline">
         @csrf
         @method('DELETE')
-        <button type="submit" onclick="return confirm('Yakin hapus mata kuliah ini?')">Hapus</button>
+        <button type="button" onclick="document.getElementById('modal-hapus-{{ $course->id }}').showModal()">Hapus</button>
+        <button type="submit">hapus aja udah</button>
     </form>
 
     <a href="{{ route('courses.index') }}">Kembali ke daftar</a>

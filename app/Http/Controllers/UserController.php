@@ -4,16 +4,35 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Http\Requests\StoreUserRequest;
+use App\Http\Requests\UpdateUserRequest;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::all();
+        $search = trim((string) $request->query('search', ''));
+        $role = $request->query('role', '');
+
+        $users = User::query()
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->when(in_array($role, ['admin', 'dosen', 'mahasiswa'], true), function ($query) use ($role) {
+                $query->where('role', $role);
+            })
+            ->orderBy('name')
+            ->paginate(15)
+            ->withQueryString();
 
         return view('users.index', [
             'title' => 'Daftar Pengguna',
             'users' => $users,
+            'search' => $search,
+            'role' => $role,
         ]);
     }
 
@@ -32,15 +51,9 @@ class UserController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreUserRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8',
-            'role' => 'required|in:admin,dosen,mahasiswa',
-            'nim_nip' => 'nullable|string|unique:users,nim_nip',
-        ]);
+        $validated = $request->validated();
 
         $user = new User();
         $user->name = $validated['name'];
@@ -61,14 +74,9 @@ class UserController extends Controller
         ]);
     }
 
-    public function update(Request $request, User $user)
+    public function update(UpdateUserRequest $request, User $user)
     {
-        $validated = $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'role' => 'required|in:admin,dosen,mahasiswa',
-            'nim_nip' => 'nullable|string|unique:users,nim_nip,' . $user->id,
-        ]);
+        $validated = $request->validated();
 
         $user->name = $validated['name'];
         $user->email = $validated['email'];
