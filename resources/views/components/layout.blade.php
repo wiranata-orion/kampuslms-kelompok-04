@@ -38,7 +38,6 @@
                 Mata Kuliah
             </a>
 
-            {{-- Tombol tambah, hanya tampil jika route courses.create sudah didaftarkan --}}
             @if (Route::has('courses.create'))
                 <a href="{{ route('courses.create') }}">+ Tambah Mata Kuliah</a>
             @endif
@@ -46,6 +45,18 @@
     </header>
 
     <main>
+        @if (session('success'))
+            <div class="card" style="background: #dcfce7; border-color: #86efac; color: #166534;">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div class="card" style="background: #fee2e2; border-color: #fca5a5; color: #991b1b;">
+                {{ session('error') }}
+            </div>
+        @endif
+
         {{ $slot }}
     </main>
 </body>
