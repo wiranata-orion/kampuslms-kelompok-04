@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Course;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Http\Requests\StoreCourseRequest;
+use App\Http\Requests\UpdateCourseRequest;
 
 class CourseController extends Controller
 {
@@ -56,16 +58,9 @@ class CourseController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreCourseRequest $request)
     {
-        $validated = $request->validate([
-            'code' => 'required|string|unique:courses,code',
-            'name' => 'required|string',
-            'description' => 'required|string',
-            'sks' => 'required|integer|min:1|max:6',
-            'lecturer_id' => 'required|exists:users,id',
-            'status' => 'required|in:draft,active,archived',
-        ]);
+        $validated = $request->validated();
 
         $course = new Course();
         $course->code = $validated['code'];
@@ -90,16 +85,9 @@ class CourseController extends Controller
         ]);
     }
 
-    public function update(Request $request, Course $course)
+    public function update(UpdateCourseRequest $request, Course $course)
     {
-        $validated = $request->validate([
-            'code' => 'required|string|unique:courses,code,' . $course->id,
-            'name' => 'required|string',
-            'description' => 'required|string',
-            'sks' => 'required|integer|min:1|max:6',
-            'lecturer_id' => 'required|exists:users,id',
-            'status' => 'required|in:draft,active,archived',
-        ]);
+        $validated = $request->validated();
 
         $course->code = $validated['code'];
         $course->name = $validated['name'];
