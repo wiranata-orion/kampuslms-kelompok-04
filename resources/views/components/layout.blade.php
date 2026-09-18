@@ -37,6 +37,11 @@
                class="{{ request()->routeIs('courses.*') ? 'active' : '' }}">
                 Mata Kuliah
             </a>
+            
+            <a href="{{ route('users.index') }}"
+               class="{{ request()->routeIs('users.*') ? 'active' : '' }}">
+                Pengguna
+            </a>
 
             {{-- Tombol tambah, hanya tampil jika route courses.create sudah didaftarkan --}}
             @if (Route::has('courses.create'))
