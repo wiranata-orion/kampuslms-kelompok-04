@@ -7,13 +7,30 @@ use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::all();
+        $search = trim((string) $request->query('search', ''));
+        $role = $request->query('role', '');
+
+        $users = User::query()
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->when(in_array($role, ['admin', 'dosen', 'mahasiswa'], true), function ($query) use ($role) {
+                $query->where('role', $role);
+            })
+            ->orderBy('name')
+            ->paginate(15)
+            ->withQueryString();
 
         return view('users.index', [
             'title' => 'Daftar Pengguna',
             'users' => $users,
+            'search' => $search,
+            'role' => $role,
         ]);
     }
 

@@ -8,13 +8,31 @@ use Illuminate\Http\Request;
 
 class CourseController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $courses = Course::with('lecturer')->get();
+        $search = trim((string) $request->query('search', ''));
+        $status = $request->query('status', '');
+
+        $courses = Course::query()
+            ->with('lecturer')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('code', 'like', "%{$search}%")
+                        ->orWhere('name', 'like', "%{$search}%");
+                });
+            })
+            ->when(in_array($status, ['draft', 'active', 'archived'], true), function ($query) use ($status) {
+                $query->where('status', $status);
+            })
+            ->orderBy('name')
+            ->paginate(15)
+            ->withQueryString();
 
         return view('courses.index', [
             'title' => 'Daftar Mata Kuliah',
             'courses' => $courses,
+            'search' => $search,
+            'status' => $status,
         ]);
     }
 
