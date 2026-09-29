@@ -53,6 +53,31 @@ Route yang ditelusuri: `/tentang`
 
 ### FIX - Repo cacat
 
+
+
+Repo: https://github.com/wiranata-orion/LMS-Broken/blob/W02/README.md
+
+### Temuan ke-1
+`@vite(['resources/css/app.css', 'resources/js/app.js'])` memunculkan error karena dependency frontend belum terpasang. Masalah selesai setelah saya menjalankan `npm install`, lalu `npm run dev`.
+
+### Temuan ke-2
+Halaman tambah mata kuliah menampilkan error 404. Laravel mencocokkan route dari atas ke bawah, dan `/courses/{course}` yang posisinya lebih atas ikut menangkap `/courses/create`, sehingga kata "create" dianggap sebagai isi parameter `{course}`. Solusinya, letakkan `/courses/create` di atas route berparameter, dan errornya hilang.
+
+### Temuan ke-3
+Route hapus memakai method `GET`, padahal aksi yang mengubah data seharusnya memakai `POST`. Perbaikannya:
+```php
+Route::post('/courses/{id}/delete', [CourseController::class, 'destroy'])->name('courses.destroy.broken');
+```
+
+### Temuan ke-4
+Di `show.blade.php`, kode `{!! $course['description'] !!}` menampilkan HTML mentah, sehingga script yang disisipkan di deskripsi bisa dijalankan browser (celah XSS). Saya ganti menjadi `{{ $course['description'] }}` supaya isinya di-escape dan hanya tampil sebagai teks.
+
+### Temuan ke-5
+Di `index.blade.php`, aksi hapus dibuat dengan tautan `href`. Padahal `href` itu untuk berpindah halaman, sedangkan pengiriman data ke server seharusnya lewat `form`. Saya ubah menjadi form dengan method `POST` (lengkap dengan `@csrf`).
+
+### Temuan ke-6
+Di `index.blade.php` ada logika untuk menyaring mata kuliah berdasarkan status. Logika seperti ini seharusnya ada di `Controller`, bukan di view. Saya pindahkan ke `CourseController`, dan view hanya menampilkan data yang sudah siap.
+
 ### BUILD - Kerangka KampusLMS
 
 - [x] Layout `x-layout` dengan navbar berisi Dashboard, Mata Kuliah, Tentang (`resources/views/components/layout.blade.php`)
@@ -63,4 +88,3 @@ Route yang ditelusuri: `/tentang`
 - [x] Commit dari lebih dari satu anggota, sudah ada commit dari Jeshua dan anggota lain di repo
 
 
-http://127.0.0.1:8000
