@@ -102,14 +102,14 @@ Submissions di mahasiswa itu gk punya destroy, karena kan kalau tugasnya udah di
 Terus karena ada risiko IDOR, maka setiap route wajib dicek `submission->user_id === auth()->id()`
 
 File yang kita perlu buat/edit:
-1. app/Http/Middleware/EnsureUserHasRole.php (belum) 
+1. app/Http/Middleware/EnsureUserHasRole.php 
 2. bootstrap/app.php (edit)
-3. app/Policies/CoursePolicy.php
-4. app/Policies/MaterialPolicy.php
-5. app/Policies/AssignmentPolicy.php
-6. app/Policies/SubmissionPolicy.php
-7. app/Policies/GradePolicy.php
-8. app/Policies/NotificationPolicy.php
+3. app/Policies/CoursePolicy.php (dibuat di minggu ke 7)
+4. app/Policies/MaterialPolicy.php (dibuat di minggu ke 7)
+5. app/Policies/AssignmentPolicy.php (dibuat di minggu ke 7)
+6. app/Policies/SubmissionPolicy.php (dibuat di minggu ke 7)
+7. app/Policies/GradePolicy.php (dibuat di minggu ke 7)
+8. app/Policies/NotificationPolicy.php (dibuat di minggu ke 7)
 9. app/Providers/AppServiceProvider.php (edit) atau bikin AuthServiceProvider
 10. app/Http/Controllers/AuthController.php
 11. app/Http/Controllers/DashboardController.php
@@ -136,7 +136,7 @@ File yang kita perlu buat/edit:
 32. app/Http/Requests/UpdateGradeRequest.php
 33. app/Http/Requests/StoreEnrollmentRequest.php	
 34. app/Models/Enrollment.php
-35. app/Models/Notification.php
+35. app/Models/Notification.php (dibuat di minggu ke 9)
 36. resources/views/auth/login.blade.php
 37. resources/views/courses/index.blade.php
 38. resources/views/courses/show.blade.php
@@ -150,6 +150,6 @@ File yang kita perlu buat/edit:
 46. resources/views/enrollments/index.blade.php, create.blade.php
 47. resources/views/notifications/index.blade.php
 48. resources/views/components/layout.blade.php
-49. resources/views/errors/500.blade.php, 403.blade.php
+49. resources/views/errors/403.blade.php, 500.blade.php (dibuat di minggu ke 7)
 50. resources/views/tentang.blade.php
 51. routes/web.php
