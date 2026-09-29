@@ -1,51 +1,8 @@
-<x-layout title="Daftar Pengguna">
-    <h1>Daftar Pengguna</h1>
-
-    @if (session('success'))
-        <p>{{ session('success') }}</p>
-    @endif
-
-    <a href="{{ route('users.create') }}">+ Tambah Pengguna</a>
-
-    <form action="{{ route('users.index') }}" method="GET" style="margin: 1rem 0; display: flex; gap: 0.5rem;">
-        <input type="text" name="search" value="{{ $search }}" placeholder="Cari nama atau email...">
-
-        <select name="role">
-            <option value="">Semua Role</option>
-            <option value="admin" @selected($role === 'admin')>Admin</option>
-            <option value="dosen" @selected($role === 'dosen')>Dosen</option>
-            <option value="mahasiswa" @selected($role === 'mahasiswa')>Mahasiswa</option>
-        </select>
-
-        <button type="submit" class="btn">Cari</button>
-        <a href="{{ route('users.index') }}">Reset</a>
-    </form>
-
-    <table border="1">
-        <tr>
-            <th>Nama</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>NIM/NIP</th>
-            <th>Aksi</th>
-        </tr>
-        @foreach ($users as $user)
-            <tr>
-                <td><a href="{{ route('users.show', $user) }}">{{ $user->name }}</a></td>
-                <td>{{ $user->email }}</td>
-                <td>{{ $user->role }}</td>
-                <td>{{ $user->nim_nip ?? '-' }}</td>
-                <td>
-                    <a href="{{ route('users.edit', $user) }}">Edit</a>
-                    <form action="{{ route('users.destroy', $user) }}" method="POST" style="display:inline">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" onclick="return confirm('Yakin hapus pengguna ini?')">Hapus</button>
-                    </form>
-                </td>
-            </tr>
-        @endforeach
-    </table>
-
-    <x-pagination :paginator="$users" />
+<x-layout title="Pengguna · Kampuskin">
+    <section class="page-heading"><div><span class="eyebrow">Administrasi</span><h1>Pengguna kampus</h1><p class="subtitle">Kelola akun admin, dosen, dan mahasiswa.</p></div><a class="btn btn-pink" href="{{ route('admin.users.create') }}">Tambah pengguna</a></section>
+    <section class="panel"><div class="toolbar"><form action="{{ route('admin.users.index') }}" method="GET"><input class="field-grow" type="search" name="search" value="{{ $search }}" placeholder="Cari nama atau email..." aria-label="Cari pengguna"><select name="role" aria-label="Filter peran"><option value="">Semua peran</option><option value="admin" @selected($role === 'admin')>Admin</option><option value="dosen" @selected($role === 'dosen')>Dosen</option><option value="mahasiswa" @selected($role === 'mahasiswa')>Mahasiswa</option></select><button class="btn" type="submit">Cari</button><a class="btn btn-quiet" href="{{ route('admin.users.index') }}">Atur ulang</a></form></div>
+        @if ($users->isEmpty()) <div class="empty-state"><span class="empty-mark">+</span><h2>Belum ada pengguna</h2><p>Coba ubah pencarian atau tambahkan akun baru.</p></div>
+        @else <div class="table-wrap"><table><thead><tr><th>Nama</th><th>Email</th><th>Peran</th><th>NIM / NIP</th><th>Aksi</th></tr></thead><tbody>@foreach ($users as $user)<tr><td><a class="table-primary" href="{{ route('admin.users.show', $user) }}">{{ $user->name }}</a></td><td>{{ $user->email }}</td><td><span class="pill {{ $user->role === 'admin' ? 'pill-pink' : ($user->role === 'dosen' ? 'pill-blue' : '') }}">{{ $user->role }}</span></td><td>{{ $user->nim_nip ?: '—' }}</td><td><div class="actions" style="margin:0"><a class="btn btn-quiet btn-small" href="{{ route('admin.users.show', $user) }}">Detail</a><a class="btn btn-quiet btn-small" href="{{ route('admin.users.edit', $user) }}">Edit</a><form class="inline-form" action="{{ route('admin.users.destroy', $user) }}" method="POST" onsubmit="return confirm('Hapus akun {{ addslashes($user->name) }}?')">@csrf @method('DELETE')<button class="btn btn-danger btn-small" type="submit">Hapus</button></form></div></td></tr>@endforeach</tbody></table></div> @endif
+        <x-pagination :paginator="$users" />
+    </section>
 </x-layout>

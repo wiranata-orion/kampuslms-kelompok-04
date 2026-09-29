@@ -1,53 +1,25 @@
-<x-layout title="Daftar Mata Kuliah">
-    <h1>Daftar Mata Kuliah</h1>
-
-    @if (session('success'))
-        <p>{{ session('success') }}</p>
-    @endif
-
-    <a href="{{ route('courses.create') }}">+ Tambah Mata Kuliah</a>
-
-    <form action="{{ route('courses.index') }}" method="GET" style="margin: 1rem 0; display: flex; gap: 0.5rem;">
-        <input type="text" name="search" value="{{ $search }}" placeholder="Cari kode atau nama...">
-
-        <select name="status">
-            <option value="">Semua Status</option>
-            <option value="draft" @selected($status === 'draft')>Draft</option>
-            <option value="active" @selected($status === 'active')>Active</option>
-            <option value="archived" @selected($status === 'archived')>Archived</option>
-        </select>
-
-        <button type="submit" class="btn">Cari</button>
-        <a href="{{ route('courses.index') }}">Reset</a>
-    </form>
-
-    <table border="1">
-        <tr>
-            <th>Kode</th>
-            <th>Nama</th>
-            <th>SKS</th>
-            <th>Dosen</th>
-            <th>Status</th>
-            <th>Aksi</th>
-        </tr>
-        @foreach ($courses as $course)
-            <tr>
-                <td>{{ $course->code }}</td>
-                <td><a href="{{ route('courses.show', $course) }}">{{ $course->name }}</a></td>
-                <td>{{ $course->sks }}</td>
-                <td>{{ $course->lecturer->name ?? '-' }}</td>
-                <td>{{ $course->status }}</td>
-                <td>
-                    <a href="{{ route('courses.edit', $course) }}">Edit</a>
-                    <form action="{{ route('courses.destroy', $course) }}" method="POST" style="display:inline">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" onclick="return confirm('Yakin hapus mata kuliah ini?')">Hapus</button>
-                    </form>
-                </td>
-            </tr>
-        @endforeach
-    </table>
-
-    <x-pagination :paginator="$courses" />
+<x-layout title="Mata Kuliah · Kampuskin">
+    <section class="page-heading"><div><span class="eyebrow">Katalog kampus</span><h1>Jelajahi mata kuliah</h1><p class="subtitle">Cari kelas dan temukan ruang untuk belajar hal baru.</p></div>
+        @if (auth()->user()->role === 'admin') <a class="btn btn-pink" href="{{ route('admin.courses.create') }}">Tambah mata kuliah</a> @endif
+    </section>
+    <section class="panel">
+        <div class="toolbar"><form action="{{ route('courses.index') }}" method="GET">
+            <input class="field-grow" type="search" name="search" value="{{ $search }}" placeholder="Cari kode atau nama kelas..." aria-label="Cari mata kuliah">
+            <select name="status" aria-label="Filter status"><option value="">Semua status</option><option value="draft" @selected($status === 'draft')>Draft</option><option value="active" @selected($status === 'active')>Aktif</option><option value="archived" @selected($status === 'archived')>Arsip</option></select>
+            <button class="btn" type="submit">Cari</button><a class="btn btn-quiet" href="{{ route('courses.index') }}">Atur ulang</a>
+        </form></div>
+        @if ($courses->isEmpty())
+            <div class="empty-state"><span class="empty-mark">+</span><h2>Belum ada mata kuliah</h2><p>Coba ubah kata kunci atau filter yang dipilih.</p></div>
+        @else
+            <div class="table-wrap"><table><thead><tr><th>Kode</th><th>Mata kuliah</th><th>SKS</th><th>Dosen</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
+                @foreach ($courses as $course)
+                    <tr><td><span class="pill pill-blue">{{ $course->code }}</span></td><td><a class="table-primary" href="{{ route('courses.show', $course) }}">{{ $course->name }}</a></td><td>{{ $course->sks }}</td><td>{{ $course->lecturer->name ?? 'Belum ditentukan' }}</td><td><span class="pill {{ $course->status === 'active' ? 'pill-green' : ($course->status === 'archived' ? 'pill-muted' : 'pill-pink') }}">{{ $course->status }}</span></td><td><div class="actions" style="margin:0">
+                        <a class="btn btn-quiet btn-small" href="{{ route('courses.show', $course) }}">Detail</a>
+                        @if (auth()->user()->role === 'admin') <a class="btn btn-quiet btn-small" href="{{ route('admin.courses.edit', $course) }}">Edit</a><form class="inline-form" action="{{ route('admin.courses.destroy', $course) }}" method="POST" onsubmit="return confirm('Hapus mata kuliah ini?')">@csrf @method('DELETE')<button class="btn btn-danger btn-small" type="submit">Hapus</button></form> @endif
+                    </div></td></tr>
+                @endforeach
+            </tbody></table></div>
+        @endif
+        <x-pagination :paginator="$courses" />
+    </section>
 </x-layout>

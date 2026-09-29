@@ -1,38 +1,7 @@
-<x-layout title="Edit Pengguna">
-    <h1>Edit Pengguna</h1>
-
-    @if ($errors->any())
-        <div>
-            <ul>
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
-    <form action="{{ route('users.update', $user) }}" method="POST">
-        @csrf
-        @method('PUT')
-
-        <label>Nama</label>
-        <input type="text" name="name" value="{{ old('name', $user->name) }}">
-
-        <label>Email</label>
-        <input type="email" name="email" value="{{ old('email', $user->email) }}">
-
-        <label>Role</label>
-        <select name="role">
-            <option value="admin" {{ old('role', $user->role) == 'admin' ? 'selected' : '' }}>Admin</option>
-            <option value="dosen" {{ old('role', $user->role) == 'dosen' ? 'selected' : '' }}>Dosen</option>
-            <option value="mahasiswa" {{ old('role', $user->role) == 'mahasiswa' ? 'selected' : '' }}>Mahasiswa</option>
-        </select>
-
-        <label>NIM/NIP (opsional)</label>
-        <input type="text" name="nim_nip" value="{{ old('nim_nip', $user->nim_nip) }}">
-
-        <button type="submit">Perbarui</button>
-    </form>
-
-    <a href="{{ route('users.index') }}">Kembali ke daftar</a>
+<x-layout title="Edit Pengguna · Kampuskin">
+    <section class="page-heading"><div><span class="eyebrow">Administrasi akun</span><h1>Edit pengguna</h1><p class="subtitle">Perbarui informasi {{ $user->name }}.</p></div></section>
+    <section class="panel"><form action="{{ route('admin.users.update', $user) }}" method="POST">@csrf @method('PUT')
+        <div class="form-grid"><div class="field"><label for="name">Nama lengkap</label><input id="name" name="name" value="{{ old('name', $user->name) }}" required>@error('name')<p class="field-error">{{ $message }}</p>@enderror</div><div class="field"><label for="email">Email</label><input id="email" type="email" name="email" value="{{ old('email', $user->email) }}" required>@error('email')<p class="field-error">{{ $message }}</p>@enderror</div><div class="field"><label for="role">Peran</label><select id="role" name="role" required><option value="admin" @selected(old('role', $user->role) === 'admin')>Admin</option><option value="dosen" @selected(old('role', $user->role) === 'dosen')>Dosen</option><option value="mahasiswa" @selected(old('role', $user->role) === 'mahasiswa')>Mahasiswa</option></select>@error('role')<p class="field-error">{{ $message }}</p>@enderror</div><div class="field"><label for="nim_nip">NIM / NIP <span style="font-weight:400">(opsional)</span></label><input id="nim_nip" name="nim_nip" value="{{ old('nim_nip', $user->nim_nip) }}">@error('nim_nip')<p class="field-error">{{ $message }}</p>@enderror</div></div>
+        <div class="actions"><button class="btn btn-pink" type="submit">Simpan perubahan</button><a class="btn btn-quiet" href="{{ route('admin.users.show', $user) }}">Batal</a></div>
+    </form></section>
 </x-layout>
