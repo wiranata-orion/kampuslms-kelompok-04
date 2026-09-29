@@ -15,7 +15,7 @@ class StoreUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string'],
+            'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
             'role' => ['required', 'in:admin,dosen,mahasiswa'],
@@ -27,13 +27,17 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'name.required' => 'Nama wajib diisi.',
+            'name.string' => 'Nama harus berupa teks.',
+            'name.max' => 'Nama maksimal 150 karakter.',
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
             'email.unique' => 'Email ini sudah terdaftar.',
             'password.required' => 'Password wajib diisi.',
+            'password.string' => 'Password harus berupa teks.',
             'password.min' => 'Password minimal 8 karakter.',
             'role.required' => 'Role wajib dipilih.',
             'role.in' => 'Role tidak valid.',
+            'nim_nip.string' => 'NIM/NIP harus berupa teks.',
             'nim_nip.unique' => 'NIM/NIP ini sudah terdaftar.',
         ];
     }

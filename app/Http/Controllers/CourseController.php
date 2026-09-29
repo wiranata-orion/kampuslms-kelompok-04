@@ -2,15 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Course;
-use App\Models\User;
-use Illuminate\Http\Request;
 use App\Http\Requests\StoreCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
+use App\Models\Course;
+use App\Models\User;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class CourseController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * courses.index (grup Umum) — katalog mata kuliah, semua peran.
+     */
+    public function index(Request $request): View
     {
         $search = trim((string) $request->query('search', ''));
         $status = $request->query('status', '');
@@ -38,8 +43,22 @@ class CourseController extends Controller
         ]);
     }
 
-    public function show(Course $course)
+    /**
+     * courses.show (grup Umum) — admin & dosen bebas lihat semua course;
+     * mahasiswa HANYA boleh lihat course yang dia ikuti (kesepakatan poin 2).
+     */
+    public function show(Request $request, Course $course): View
     {
+        $user = $request->user();
+
+        if ($user->role === 'mahasiswa') {
+            abort_unless(
+                $course->students()->where('users.id', $user->id)->exists(),
+                403,
+                'Kamu tidak terdaftar di mata kuliah ini.'
+            );
+        }
+
         $course->load('lecturer');
 
         return view('courses.show', [
@@ -48,9 +67,36 @@ class CourseController extends Controller
         ]);
     }
 
-    public function create()
+    /**
+     * dosen.courses.index & mahasiswa.courses.index — "mata kuliah saya".
+     *
+     * CATATAN: sengaja pakai view 'courses.my' yang TERPISAH dari
+     * 'courses.index', karena view admin punya tombol Edit/Hapus yang
+     * tidak boleh tampil untuk dosen/mahasiswa. View ini perlu dibuat
+     * oleh rekan front-end.
+     */
+    public function myCourses(Request $request): View
     {
-        $lecturers = User::where('role', 'dosen')->get();
+        $user = $request->user();
+
+        $courses = match ($user->role) {
+            'dosen' => $user->taughtCourses()->with('lecturer')->orderBy('name')->paginate(15),
+            'mahasiswa' => $user->courses()->with('lecturer')->orderBy('name')->paginate(15),
+            default => abort(403),
+        };
+
+        return view('courses.my', [
+            'title' => 'Mata Kuliah Saya',
+            'courses' => $courses,
+        ]);
+    }
+
+    /**
+     * admin.courses.create
+     */
+    public function create(): View
+    {
+        $lecturers = User::where('role', 'dosen')->orderBy('name')->get();
 
         return view('courses.create', [
             'title' => 'Tambah Mata Kuliah',
@@ -58,14 +104,20 @@ class CourseController extends Controller
         ]);
     }
 
-    public function store(StoreCourseRequest $request)
+    /**
+     * admin.courses.store
+     */
+    public function store(StoreCourseRequest $request): RedirectResponse
     {
         $validated = $request->validated();
 
         $course = new Course();
         $course->code = $validated['code'];
         $course->name = $validated['name'];
-        $course->description = $validated['description'];
+        // StoreCourseRequest menandai 'description' nullable, tapi kolom
+        // ini NOT NULL di migrasi — fallback ke string kosong supaya
+        // tidak gagal di level database.
+        $course->description = $validated['description'] ?? '';
         $course->sks = $validated['sks'];
         $course->lecturer_id = $validated['lecturer_id'];
         $course->status = $validated['status'];
@@ -74,9 +126,12 @@ class CourseController extends Controller
         return redirect()->route('courses.index')->with('success', 'Mata kuliah berhasil ditambahkan.');
     }
 
-    public function edit(Course $course)
+    /**
+     * admin.courses.edit
+     */
+    public function edit(Course $course): View
     {
-        $lecturers = User::where('role', 'dosen')->get();
+        $lecturers = User::where('role', 'dosen')->orderBy('name')->get();
 
         return view('courses.edit', [
             'title' => 'Edit Mata Kuliah',
@@ -85,13 +140,16 @@ class CourseController extends Controller
         ]);
     }
 
-    public function update(UpdateCourseRequest $request, Course $course)
+    /**
+     * admin.courses.update
+     */
+    public function update(UpdateCourseRequest $request, Course $course): RedirectResponse
     {
         $validated = $request->validated();
 
         $course->code = $validated['code'];
         $course->name = $validated['name'];
-        $course->description = $validated['description'];
+        $course->description = $validated['description'] ?? '';
         $course->sks = $validated['sks'];
         $course->lecturer_id = $validated['lecturer_id'];
         $course->status = $validated['status'];
@@ -100,7 +158,10 @@ class CourseController extends Controller
         return redirect()->route('courses.index')->with('success', 'Mata kuliah berhasil diperbarui.');
     }
 
-    public function destroy(Course $course)
+    /**
+     * admin.courses.destroy
+     */
+    public function destroy(Course $course): RedirectResponse
     {
         $course->delete();
 
