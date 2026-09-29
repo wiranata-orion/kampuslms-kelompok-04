@@ -100,3 +100,56 @@ Middleware: `auth` `role:dosen` <--- sama kayak dosen
 
 Submissions di mahasiswa itu gk punya destroy, karena kan kalau tugasnya udah dikirim gk boleh dihapus lagi. Kecuali masih tahap diedit.
 Terus karena ada risiko IDOR, maka setiap route wajib dicek `submission->user_id === auth()->id()`
+
+File yang kita perlu buat/edit:
+1. app/Http/Middleware/EnsureUserHasRole.php (belum) 
+2. bootstrap/app.php (edit)
+3. app/Policies/CoursePolicy.php
+4. app/Policies/MaterialPolicy.php
+5. app/Policies/AssignmentPolicy.php
+6. app/Policies/SubmissionPolicy.php
+7. app/Policies/GradePolicy.php
+8. app/Policies/NotificationPolicy.php
+9. app/Providers/AppServiceProvider.php (edit) atau bikin AuthServiceProvider
+10. app/Http/Controllers/AuthController.php
+11. app/Http/Controllers/DashboardController.php
+12. app/Http/Controllers/CourseController.php
+13. app/Http/Controllers/UserController.php
+14. app/Http/Controllers/MaterialController.php
+15. app/Http/Controllers/AssignmentController.php
+16. app/Http/Controllers/SubmissionController.php
+17. app/Http/Controllers/GradeController.php
+18. app/Http/Controllers/Admin/EnrollmentController.php
+19. app/Http/Controllers/NotificationController.php
+20. app/Http/Requests/StoreCourseRequest.php
+21. app/Http/Requests/UpdateCourseRequest.php
+22. app/Http/Requests/LoginRequest.php
+23. app/Http/Requests/StoreUserRequest.php
+24. app/Http/Requests/UpdateUserRequest.php
+25. app/Http/Requests/StoreMaterialRequest.php
+26. app/Http/Requests/UpdateMaterialRequest.php
+27. app/Http/Requests/StoreAssignmentRequest.php
+28. app/Http/Requests/UpdateAssignmentRequest.php
+29. app/Http/Requests/StoreSubmissionRequest.php
+30. app/Http/Requests/UpdateSubmissionRequest.php
+31. app/Http/Requests/StoreGradeRequest.php
+32. app/Http/Requests/UpdateGradeRequest.php
+33. app/Http/Requests/StoreEnrollmentRequest.php	
+34. app/Models/Enrollment.php
+35. app/Models/Notification.php
+36. resources/views/auth/login.blade.php
+37. resources/views/courses/index.blade.php
+38. resources/views/courses/show.blade.php
+39. resources/views/courses/create.blade.php, edit.blade.php
+40. resources/views/users/*.blade.php (4 file)
+41. resources/views/dashboard.blade.php (atau tetap pakai about.blade.php)
+42. resources/views/materials/index.blade.php, create.blade.php, edit.blade.php, show.blade.php
+43. resources/views/assignments/index.blade.php, create.blade.php, edit.blade.php, show.blade.php
+44. resources/views/submissions/create.blade.php, edit.blade.php, show.blade.php, index.blade.php (untuk dosen)
+45. resources/views/grades/create.blade.php, edit.blade.php, show.blade.php
+46. resources/views/enrollments/index.blade.php, create.blade.php
+47. resources/views/notifications/index.blade.php
+48. resources/views/components/layout.blade.php
+49. resources/views/errors/500.blade.php, 403.blade.php
+50. resources/views/tentang.blade.php
+51. routes/web.php
