@@ -109,7 +109,7 @@ class UserController extends Controller
         // sengaja menghapus akunnya sendiri dari tabel index. Dicegah
         // eksplisit di sini.
         abort_if(
-            $user->id === auth()->id,
+            $user->id === auth()->id(),
             403,
             'Kamu tidak bisa menghapus akunmu sendiri.'
         );
