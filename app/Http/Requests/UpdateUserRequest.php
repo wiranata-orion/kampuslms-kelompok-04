@@ -16,10 +16,10 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($this->user)],
+            'name' => ['required', 'string', 'max:150'],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($this->route('user'))],
             'role' => ['required', 'in:admin,dosen,mahasiswa'],
-            'nim_nip' => ['nullable', 'string', Rule::unique('users', 'nim_nip')->ignore($this->user)],
+            'nim_nip' => ['nullable', 'string', Rule::unique('users', 'nim_nip')->ignore($this->route('user'))],
         ];
     }
 
@@ -27,11 +27,14 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'name.required' => 'Nama wajib diisi.',
+            'name.string' => 'Nama harus berupa teks.',
+            'name.max' => 'Nama maksimal 150 karakter.',
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
             'email.unique' => 'Email ini sudah terdaftar.',
             'role.required' => 'Role wajib dipilih.',
             'role.in' => 'Role tidak valid.',
+            'nim_nip.string' => 'NIM/NIP harus berupa teks.',
             'nim_nip.unique' => 'NIM/NIP ini sudah terdaftar.',
         ];
     }
