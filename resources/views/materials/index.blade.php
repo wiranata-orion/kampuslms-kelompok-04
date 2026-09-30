@@ -1,0 +1,8 @@
+<x-layout title="Materi · {{ $course->name }}">
+	<section class="page-heading"><div><span class="eyebrow">{{ $course->code }} · Materi kelas</span><h1>{{ $course->name }}</h1><p class="subtitle">Bahan belajar yang disiapkan untuk kelas ini.</p></div><a class="btn btn-pink" href="{{ route('dosen.courses.materials.create', $course) }}">Tambah materi</a></section>
+	<section class="panel">
+		@if ($materials->isEmpty()) <div class="empty-state"><span class="empty-mark">M</span><h2>Materi belum tersedia</h2><p>Tambahkan dokumen atau tautan referensi untuk kelas ini.</p><a class="btn" href="{{ route('dosen.courses.materials.create', $course) }}">Buat materi pertama</a></div>
+		@else <div class="table-wrap"><table><thead><tr><th>Materi</th><th>Jenis</th><th>Diunggah</th><th>Aksi</th></tr></thead><tbody>@foreach ($materials as $material)<tr><td><a class="table-primary" href="{{ route('dosen.materials.show', $material) }}">{{ $material->title }}</a><span class="table-meta">{{ \Illuminate\Support\Str::limit($material->description, 90) }}</span></td><td><span class="pill {{ $material->type === 'file' ? 'pill-blue' : 'pill-pink' }}">{{ $material->type === 'file' ? 'File' : 'Tautan' }}</span></td><td>{{ $material->created_at?->format('d M Y') }}</td><td><div class="actions" style="margin:0"><a class="btn btn-quiet btn-small" href="{{ route('dosen.materials.show', $material) }}">Buka</a><a class="btn btn-quiet btn-small" href="{{ route('dosen.materials.edit', $material) }}">Edit</a></div></td></tr>@endforeach</tbody></table></div> @endif
+		<x-pagination :paginator="$materials" />
+	</section>
+</x-layout>

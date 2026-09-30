@@ -1,86 +1,124 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\EnrollmentController;
+use App\Http\Controllers\AssignmentController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GradeController;
+use App\Http\Controllers\MaterialController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SubmissionController;
 use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Route;
 
-// Pengalihan dari halaman utama '/' langsung ke daftar mata kuliah
-Route::get('/', function () {
-    return redirect()->route('dashboard');
+/*
+|--------------------------------------------------------------------------
+| A. Auth (prasyarat — belum ada di kode saat ini)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'create'])->name('login');
+    Route::post('/login', [AuthController::class, 'store'])->name('login.store');
 });
 
-// Dashboard / halaman utama (sementara memakai file about.blade.php)
-Route::view('/dashboard', 'about')->name('dashboard');
+Route::post('/logout', [AuthController::class, 'destroy'])
+    ->middleware('auth')
+    ->name('logout');
 
-Route::get('/tentang', function () {
-    return view('tentang');
+/*
+|--------------------------------------------------------------------------
+| B. Umum — semua peran yang sudah login
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->group(function () {
+
+    Route::get('/', function () {
+        return redirect()->route('dashboard');
+    });
+
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Katalog mata kuliah: index terbuka untuk semua peran,
+    // tapi show() WAJIB diotorisasi di controller/policy — mahasiswa
+    // hanya boleh melihat course yang dia ikuti (lihat catatan di bawah).
+    Route::resource('courses', CourseController::class)->only(['index', 'show']);
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
 });
 
-// Group modul courses (prefix URI 'courses' dan prefix nama rute 'courses.')
-Route::prefix('courses')->name('courses.')->group(function () {
+/*
+|--------------------------------------------------------------------------
+| C. Admin
+|--------------------------------------------------------------------------
+*/
+Route::prefix('admin')
+    ->name('admin.')
+    ->middleware(['auth', 'role:admin'])
+    ->group(function () {
 
-    // 1. Menampilkan daftar semua mata kuliah (Admin, Dosen, Mahasiswa)
-    Route::get('/', [CourseController::class, 'index'])->name('index');
+        Route::resource('users', UserController::class);
 
-    // 2. Menampilkan formulir tambah mata kuliah (Admin)
-    // CATATAN: Wajib ditaruh SEBELUM /{course} agar kata 'create' tidak dianggap sebagai parameter {course}
-    Route::get('/create', [CourseController::class, 'create'])->name('create');
+        // index & show sudah didefinisikan di grup Umum, jadi dikecualikan di sini
+        Route::resource('courses', CourseController::class)->except(['index', 'show']);
 
-    // 3. Menyimpan data mata kuliah baru ke database (Admin)
-    Route::post('/', [CourseController::class, 'store'])->name('store');
+        // Enrollment: index/create/store butuh konteks {course}, destroy tidak (shallow)
+        Route::resource('courses.enrollments', EnrollmentController::class)
+            ->shallow()
+            ->only(['index', 'create', 'store', 'destroy']);
+    });
 
-    // 4. Menampilkan detail lengkap satu mata kuliah (Admin, Dosen, Mahasiswa)
-    Route::get('/{course}', [CourseController::class, 'show'])->name('show');
+/*
+|--------------------------------------------------------------------------
+| D. Dosen
+|--------------------------------------------------------------------------
+*/
+Route::prefix('dosen')
+    ->name('dosen.')
+    ->middleware(['auth', 'role:dosen'])
+    ->group(function () {
 
-    // 5. Menampilkan formulir edit mata kuliah (Admin, Dosen pengampu)
-    Route::get('/{course}/edit', [CourseController::class, 'edit'])->name('edit');
+        Route::get('/courses', [CourseController::class, 'myCourses'])->name('courses.index');
 
-    // 6. Memperbarui data mata kuliah yang diedit (Admin, Dosen pengampu)
-    Route::match(['put', 'patch'], '/{course}', [CourseController::class, 'update'])->name('update');
+        // Materi: shallow — index/create/store butuh {course}, sisanya cukup {material}
+        Route::resource('courses.materials', MaterialController::class)->shallow();
 
-    // 7. Menghapus data mata kuliah (Admin)
-    Route::delete('/{course}', [CourseController::class, 'destroy'])->name('destroy');
-});
+        // Tugas: shallow — sama pola dengan materi
+        Route::resource('courses.assignments', AssignmentController::class)->shallow();
 
-// Group modul users (prefix URI 'users' dan prefix nama rute 'users.')
-Route::prefix('users')->name('users.')->group(function () {
+        // Pengumpulan tugas: dosen hanya membaca untuk menilai, tidak CRUD penuh
+        Route::get('/assignments/{assignment}/submissions', [SubmissionController::class, 'indexForDosen'])
+            ->name('assignments.submissions.index');
+        Route::get('/submissions/{submission}', [SubmissionController::class, 'showForDosen'])
+            ->name('submissions.show');
 
-    // 1. Menampilkan daftar semua pengguna (Admin)
-    Route::get('/', [UserController::class, 'index'])->name('index');
+        // Nilai: nested di submission (relasi 1:1), shallow agar edit/update cukup {grade}
+        Route::resource('submissions.grade', GradeController::class)
+            ->shallow()
+            ->parameters(['grade' => 'grade'])
+            ->only(['create', 'store', 'edit', 'update']);
+    });
 
-    // 2. Menampilkan formulir tambah pengguna (Admin)
-    // CATATAN: Wajib ditaruh SEBELUM /{user} agar kata 'create' tidak dianggap sebagai parameter {user}
-    Route::get('/create', [UserController::class, 'create'])->name('create');
+/*
+|--------------------------------------------------------------------------
+| E. Mahasiswa
+|--------------------------------------------------------------------------
+*/
+Route::prefix('mahasiswa')
+    ->name('mahasiswa.')
+    ->middleware(['auth', 'role:mahasiswa'])
+    ->group(function () {
 
-    // 3. Menyimpan data pengguna baru ke database (Admin)
-    Route::post('/', [UserController::class, 'store'])->name('store');
+        Route::get('/courses', [CourseController::class, 'myCourses'])->name('courses.index');
 
-    // 4. Menampilkan detail lengkap satu pengguna (Admin)
-    Route::get('/{user}', [UserController::class, 'show'])->name('show');
+        // Pengumpulan tugas: shallow, tanpa destroy (sesuai kesepakatan)
+        Route::resource('assignments.submissions', SubmissionController::class)
+            ->shallow()
+            ->only(['create', 'store', 'show', 'edit', 'update']);
 
-    // 5. Menampilkan formulir edit pengguna (Admin)
-    Route::get('/{user}/edit', [UserController::class, 'edit'])->name('edit');
-
-    // 6. Memperbarui data pengguna yang diedit (Admin)
-    Route::match(['put', 'patch'], '/{user}', [UserController::class, 'update'])->name('update');
-
-    // 7. Menghapus data pengguna (Admin)
-    Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy');
-});
-
-// Route::controller(CourseController::class)
-//     ->prefix('courses')
-//     ->name('courses.')
-//     ->group(function () {
-//         Route::get('/', 'index')->name('index');
-//         Route::get('/{course}', 'show')->name('show');
-
-//         // Belum ada method-nya di CourseController — aktifkan setelah dibuat.
-//         // Selama masih di-comment, tombol "+ Tambah Mata Kuliah" di navbar
-//         // otomatis tersembunyi berkat pengecekan Route::has() di layout.
-//         // Route::get('/create', 'create')->name('create');
-//         // Route::post('/', 'store')->name('store');
-//         // Route::get('/{course}/edit', 'edit')->name('edit');
-//         // Route::match(['put', 'patch'], '/{course}', 'update')->name('update');
-//         // Route::delete('/{course}', 'destroy')->name('destroy');
-//     });
+        // Lihat nilai atas submission sendiri
+        Route::get('/submissions/{submission}/grade', [GradeController::class, 'showForStudent'])
+            ->name('submissions.grade.show');
+    });

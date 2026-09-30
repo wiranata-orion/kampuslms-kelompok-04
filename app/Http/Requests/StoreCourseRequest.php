@@ -28,8 +28,15 @@ class StoreCourseRequest extends FormRequest
     {
         return [
             'code.required' => 'Kode mata kuliah wajib diisi.',
+            'code.string' => 'Kode mata kuliah harus berupa teks.',
+            'code.max' => 'Kode mata kuliah maksimal 20 karakter.',
             'code.unique' => 'Kode mata kuliah ini sudah dipakai.',
             'name.required' => 'Nama mata kuliah wajib diisi.',
+            'name.string' => 'Nama mata kuliah harus berupa teks.',
+            'name.max' => 'Nama mata kuliah maksimal 150 karakter.',
+            'description.string' => 'Deskripsi mata kuliah harus berupa teks.',
+            'sks.required' => 'Jumlah SKS wajib diisi.',
+            'sks.integer' => 'Jumlah SKS harus berupa bilangan bulat.',
             'sks.between' => 'SKS harus antara 1 sampai 6.',
             'lecturer_id.required' => 'Dosen pengampu wajib dipilih.',
             'lecturer_id.exists' => 'Dosen yang dipilih tidak ditemukan.',

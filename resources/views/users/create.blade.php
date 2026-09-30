@@ -1,41 +1,7 @@
-<x-layout title="Tambah Pengguna">
-    <h1>Tambah Pengguna</h1>
-
-    @if ($errors->any())
-        <div>
-            <ul>
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
-    <form action="{{ route('users.store') }}" method="POST">
-        @csrf
-
-        <label>Nama</label>
-        <input type="text" name="name" value="{{ old('name') }}">
-
-        <label>Email</label>
-        <input type="email" name="email" value="{{ old('email') }}">
-
-        <label>Password</label>
-        <input type="password" name="password">
-
-        <label>Role</label>
-        <select name="role">
-            <option value="">-- Pilih Role --</option>
-            <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
-            <option value="dosen" {{ old('role') == 'dosen' ? 'selected' : '' }}>Dosen</option>
-            <option value="mahasiswa" {{ old('role') == 'mahasiswa' ? 'selected' : '' }}>Mahasiswa</option>
-        </select>
-
-        <label>NIM/NIP (opsional)</label>
-        <input type="text" name="nim_nip" value="{{ old('nim_nip') }}">
-
-        <button type="submit">Simpan</button>
-    </form>
-
-    <a href="{{ route('users.index') }}">Kembali ke daftar</a>
+<x-layout title="Tambah Pengguna · Kampuskin">
+    <section class="page-heading"><div><span class="eyebrow">Administrasi</span><h1>Tambah pengguna</h1><p class="subtitle">Buat akun dan tetapkan peran untuk anggota kampus.</p></div></section>
+    <section class="panel"><form action="{{ route('admin.users.store') }}" method="POST">@csrf
+        <div class="form-grid"><div class="field"><label for="name">Nama lengkap</label><input id="name" name="name" value="{{ old('name') }}" autocomplete="name" required>@error('name')<p class="field-error">{{ $message }}</p>@enderror</div><div class="field"><label for="email">Email</label><input id="email" type="email" name="email" value="{{ old('email') }}" autocomplete="email" required>@error('email')<p class="field-error">{{ $message }}</p>@enderror</div><div class="field"><label for="password">Kata sandi sementara</label><input id="password" type="password" name="password" minlength="8" autocomplete="new-password" required>@error('password')<p class="field-error">{{ $message }}</p>@enderror</div><div class="field"><label for="role">Peran</label><select id="role" name="role" required><option value="">Pilih peran</option><option value="admin" @selected(old('role') === 'admin')>Admin</option><option value="dosen" @selected(old('role') === 'dosen')>Dosen</option><option value="mahasiswa" @selected(old('role') === 'mahasiswa')>Mahasiswa</option></select>@error('role')<p class="field-error">{{ $message }}</p>@enderror</div><div class="field"><label for="nim_nip">NIM / NIP <span style="font-weight:400">(opsional)</span></label><input id="nim_nip" name="nim_nip" value="{{ old('nim_nip') }}">@error('nim_nip')<p class="field-error">{{ $message }}</p>@enderror</div></div>
+        <div class="actions"><button class="btn btn-pink" type="submit">Buat akun</button><a class="btn btn-quiet" href="{{ route('admin.users.index') }}">Batal</a></div>
+    </form></section>
 </x-layout>
