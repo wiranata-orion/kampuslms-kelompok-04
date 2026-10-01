@@ -10,12 +10,14 @@ class DemoAccountSeeder extends Seeder
 {
     public function run(): void
     {
+        $password_hash = Hash::make(env('DEMO_ACCOUNT_PASSWORD', 'password'));
+
         // 1. Akun Demo Admin
         User::updateOrCreate(
             ['email' => 'admin@kampuslms.test'],
             [
                 'name' => 'Administrator Demo',
-                'password' => Hash::make('password'),
+                'password' => $password_hash,
                 'role' => 'admin',
                 'nim_nip' => null,
                 'email_verified_at' => now(),
@@ -27,7 +29,7 @@ class DemoAccountSeeder extends Seeder
             ['email' => 'dosen@kampuslms.test'],
             [
                 'name' => 'Dosen Demo',
-                'password' => Hash::make('password'),
+                'password' => $password_hash,
                 'role' => 'dosen',
                 'nim_nip' => '198801012022011001',
                 'email_verified_at' => now(),
@@ -39,7 +41,7 @@ class DemoAccountSeeder extends Seeder
             ['email' => 'mahasiswa@kampuslms.test'],
             [
                 'name' => 'Mahasiswa Demo', 
-                'password' => Hash::make('password'),
+                'password' => $password_hash,
                 'role' => 'mahasiswa',
                 'nim_nip' => '10241001',
                 'email_verified_at' => now(),
