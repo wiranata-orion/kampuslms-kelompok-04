@@ -19,14 +19,12 @@ class CourseResource extends JsonResource
             'description' => $this->description,
             'sks' => $this->sks,
             'status' => $this->status,
-
-            'lecturer' => $this->whenLoaded('lecturer', function () {
-                return [
-                    'id' => $this->lecturer->id,
-                    'name' => $this->lecturer->name,
-                    'email' => $this->lecturer->email,
-                ];
-            }),
+            'lecturer' => $this->whenLoaded('lecturer', fn () => new UserResource($this->lecturer)),
+            'counts' => [
+                'materials' => $this->whenCounted('materials'),
+                'assignments' => $this->whenCounted('assignments'),
+            ],
+            'created_at' => $this->created_at?->toIso8601String(),
         ];
     }
 }
