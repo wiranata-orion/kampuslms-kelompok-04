@@ -1,39 +1,36 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
+use App\Http\Resources\AssignmentResource;
 use App\Models\Assignment;
 use App\Models\Course;
-use Illuminate\Contracts\View\View;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\JsonResponse;
 
 class AssignmentController extends Controller
 {
-    public function index(Request $request, Course $course): View
+    public function index(Request $request, Course $course): AnonymousResourceCollection
     {
-        $this->authorizeLecturer($request, $course);
+        $this->authorizeLecturerOrAdmin($request, $course);
 
         $assignments = $course->assignments()->latest('due_at')->paginate(15);
 
-        return view('assignments.index', [
-            'title' => 'Tugas - '.$course->name,
-            'course' => $course,
-            'assignments' => $assignments,
-        ]);
+        return AssignmentResource::collection($assignments);
     }
 
-    public function create(Request $request, Course $course): View
+    public function show(Request $request, Assignment $assignment): AssignmentResource
     {
-        $this->authorizeLecturer($request, $course);
+        $this->authorizeLecturerOrAdmin($request, $assignment->course);
 
-        return view('assignments.create', [
-            'title' => 'Tambah Tugas',
-            'course' => $course,
-        ]);
+        $assignment->load('course');
+
+        return new AssignmentResource($assignment);
     }
 
-    public function store(Request $request, Course $course): RedirectResponse
+    public function store(Request $request, Course $course): JsonResponse
     {
         $this->authorizeLecturer($request, $course);
 
@@ -50,34 +47,12 @@ class AssignmentController extends Controller
         $assignment->status = $validated['status'];
         $assignment->save();
 
-        return redirect()
-            ->route('dosen.courses.assignments.index', $course)
-            ->with('success', 'Tugas berhasil ditambahkan.');
+        return (new AssignmentResource($assignment))
+            ->response()
+            ->setStatusCode(201);
     }
 
-    public function show(Request $request, Assignment $assignment): View
-    {
-        $this->authorizeLecturer($request, $assignment->course);
-
-        $assignment->load('course');
-
-        return view('assignments.show', [
-            'title' => $assignment->title,
-            'assignment' => $assignment,
-        ]);
-    }
-
-    public function edit(Request $request, Assignment $assignment): View
-    {
-        $this->authorizeLecturer($request, $assignment->course);
-
-        return view('assignments.edit', [
-            'title' => 'Edit Tugas',
-            'assignment' => $assignment,
-        ]);
-    }
-
-    public function update(Request $request, Assignment $assignment): RedirectResponse
+    public function update(Request $request, Assignment $assignment): AssignmentResource
     {
         $this->authorizeLecturer($request, $assignment->course);
 
@@ -91,33 +66,34 @@ class AssignmentController extends Controller
         $assignment->status = $validated['status'];
         $assignment->save();
 
-        return redirect()
-            ->route('dosen.assignments.show', $assignment)
-            ->with('success', 'Tugas berhasil diperbarui.');
+        return new AssignmentResource($assignment);
     }
 
-    public function destroy(Request $request, Assignment $assignment): RedirectResponse
+    public function destroy(Request $request, Assignment $assignment): JsonResponse
     {
         $this->authorizeLecturer($request, $assignment->course);
 
-        $courseId = $assignment->course_id;
         $assignment->delete();
 
-        return redirect()
-            ->route('dosen.courses.assignments.index', $courseId)
-            ->with('success', 'Tugas berhasil dihapus.');
+        return response()->json(['message' => 'Tugas berhasil dihapus.'], 200);
     }
 
-    /**
-     * Titik rawan IDOR: pastikan course ini benar diampu oleh dosen yang
-     * sedang login.
-     */
     private function authorizeLecturer(Request $request, Course $course): void
     {
         abort_unless(
-            $course->lecturer_id === $request->user()->id,
+            $request->user() && $course->lecturer_id === $request->user()->id,
             403,
             'Kamu bukan dosen pengampu mata kuliah ini.'
+        );
+    }
+
+    private function authorizeLecturerOrAdmin(Request $request, Course $course): void
+    {
+        $user = $request->user();
+        abort_unless(
+            $user && ($course->lecturer_id === $user->id || $user->role === 'admin'),
+            403,
+            'Kamu tidak memiliki akses ke tugas mata kuliah ini.'
         );
     }
 
