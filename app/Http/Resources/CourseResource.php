@@ -25,6 +25,12 @@ class CourseResource extends JsonResource
                 'materials' => $this->whenCounted('materials'),
                 'assignments' => $this->whenCounted('assignments'),
             ],
+            'permissions' => $this->when($request->routeIs('api.v1.courses.show'), fn () => [
+                'view' => $request->user()?->can('view', $this->resource) ?? false,
+                'update' => $request->user()?->can('update', $this->resource) ?? false,
+                'delete' => $request->user()?->can('delete', $this->resource) ?? false,
+                'manage_enrollment' => $request->user()?->can('manageEnrollment', $this->resource) ?? false,
+            ]),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

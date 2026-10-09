@@ -29,6 +29,11 @@ class AssignmentResource extends JsonResource
                 'code' => $this->course->code,
                 'name' => $this->course->name,
             ]),
+            'permissions' => $this->when($request->routeIs('api.v1.assignments.show'), fn () => [
+                'view' => $request->user()?->can('view', $this->resource) ?? false,
+                'update' => $request->user()?->can('update', $this->resource) ?? false,
+                'delete' => $request->user()?->can('delete', $this->resource) ?? false,
+            ]),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }
