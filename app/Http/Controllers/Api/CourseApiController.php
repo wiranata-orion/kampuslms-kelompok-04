@@ -6,29 +6,30 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\AssignmentResource;
 use App\Http\Resources\CourseResource;
 use App\Http\Resources\MaterialResource;
+use App\Models\Assignment;
 use App\Models\Course;
+use App\Models\Material;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class CourseApiController extends Controller
 {
     public function index(Request $request)
     {
         $user = $request->user();
-
-        abort_unless(in_array($user->role, ['admin', 'dosen', 'mahasiswa'], true), 403);
+        Gate::authorize('viewAny', Course::class);
 
         $scope = $request->query('scope', $request->route('scope', 'my'));
         abort_unless(in_array($scope, ['all', 'my'], true), 422, 'Scope mata kuliah tidak valid.');
         $request->validate(['status' => ['sometimes', 'in:draft,active,archived']]);
 
-        $courses = $scope === 'all'
-            ? Course::query()
-            : match ($user->role) {
-                'admin' => Course::query(),
-                'dosen' => $user->taughtCourses(),
-                'mahasiswa' => $user->courses(),
-            };
+        $courses = match ($user->role) {
+            'admin' => Course::query(),
+            'dosen' => $user->taughtCourses(),
+            'mahasiswa' => $user->courses()->where('courses.status', 'active'),
+            default => Course::query()->whereRaw('1 = 0'),
+        };
 
         $courses = $courses
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->query('status')))
@@ -45,13 +46,13 @@ class CourseApiController extends Controller
         return ApiResponse::collection($courses, CourseResource::class, $request);
     }
 
-    public function show(Request $request, int $id)
+    public function show(Request $request, int $id): CourseResource
     {
         $course = Course::with('lecturer')
             ->withCount(['materials', 'assignments'])
             ->findOrFail($id);
 
-        $this->authorizeCourseAccess($request, $course);
+        Gate::authorize('view', $course);
 
         return new CourseResource($course);
     }
@@ -59,7 +60,7 @@ class CourseApiController extends Controller
     public function materials(Request $request, int $id)
     {
         $course = Course::findOrFail($id);
-        $this->authorizeCourseAccess($request, $course);
+        Gate::authorize('viewAny', [Material::class, $course]);
 
         $materials = $course->materials()
             ->with('uploader')
@@ -72,7 +73,7 @@ class CourseApiController extends Controller
     public function assignments(Request $request, int $id)
     {
         $course = Course::findOrFail($id);
-        $this->authorizeCourseAccess($request, $course);
+        Gate::authorize('viewAny', [Assignment::class, $course]);
 
         $validated = $request->validate([
             'status' => ['sometimes', 'in:draft,published'],
@@ -85,19 +86,5 @@ class CourseApiController extends Controller
             ->paginate(15);
 
         return ApiResponse::collection($assignments, AssignmentResource::class, $request);
-    }
-
-    private function authorizeCourseAccess(Request $request, Course $course): void
-    {
-        $user = $request->user();
-
-        $allowed = match ($user->role) {
-            'admin' => true,
-            'dosen' => $course->lecturer_id === $user->id,
-            'mahasiswa' => $course->students()->whereKey($user->id)->exists(),
-            default => false,
-        };
-
-        abort_unless($allowed, 403);
     }
 }

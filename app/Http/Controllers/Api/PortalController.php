@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreMaterialRequest;
 use App\Http\Resources\CourseResource;
 use App\Http\Resources\MaterialResource;
 use App\Http\Resources\UserResource;
@@ -12,6 +13,7 @@ use App\Models\User;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -50,7 +52,7 @@ class PortalController extends Controller
 
     public function users(Request $request): JsonResponse
     {
-        abort_unless($request->user()->role === 'admin', 403);
+        Gate::authorize('viewAny', User::class);
 
         $query = User::query()
             ->when($request->filled('search'), function ($query) use ($request) {
@@ -66,7 +68,7 @@ class PortalController extends Controller
 
     public function storeUser(Request $request): JsonResponse
     {
-        abort_unless($request->user()->role === 'admin', 403);
+        Gate::authorize('create', User::class);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
@@ -85,12 +87,12 @@ class PortalController extends Controller
 
     public function updateUser(Request $request, User $user): JsonResponse
     {
-        abort_unless($request->user()->role === 'admin', 403);
+        Gate::authorize('update', [$user, $request->only('role')]);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
-            'role' => ['required', 'in:admin,dosen,mahasiswa'],
+            'role' => [$request->user()->is($user) ? 'prohibited' : 'required', 'in:admin,dosen,mahasiswa'],
             'nim_nip' => ['nullable', 'string', Rule::unique('users', 'nim_nip')->ignore($user->id)],
             'password' => ['sometimes', 'nullable', 'string', 'min:8'],
         ]);
@@ -103,17 +105,35 @@ class PortalController extends Controller
         ]);
     }
 
+    public function updateCurrentUser(Request $request): UserResource
+    {
+        $user = $request->user();
+        Gate::authorize('update', [$user, $request->only('role')]);
+
+        $validated = $request->validate([
+            'name' => ['required_without:password', 'string', 'max:150'],
+            'password' => ['required_without:name', 'string', 'min:8'],
+            'email' => ['prohibited'],
+            'role' => ['prohibited'],
+            'nim_nip' => ['prohibited'],
+        ]);
+
+        $user->fill($validated);
+        $user->save();
+
+        return new UserResource($user);
+    }
+
     public function showUser(Request $request, User $user): JsonResponse
     {
-        abort_unless($request->user()->role === 'admin', 403);
+        Gate::authorize('view', $user);
 
         return response()->json(['data' => (new UserResource($user))->resolve($request)]);
     }
 
     public function destroyUser(Request $request, User $user): JsonResponse
     {
-        abort_unless($request->user()->role === 'admin', 403);
-        abort_if($user->is($request->user()), 403, 'Kamu tidak bisa menghapus akunmu sendiri.');
+        Gate::authorize('delete', $user);
         $user->delete();
 
         return response()->json(['data' => ['message' => 'Pengguna berhasil dihapus.']]);
@@ -121,7 +141,7 @@ class PortalController extends Controller
 
     public function lecturers(Request $request): JsonResponse
     {
-        abort_unless($request->user()->role === 'admin', 403);
+        Gate::authorize('viewAny', User::class);
 
         return response()->json([
             'data' => UserResource::collection(User::where('role', 'dosen')->orderBy('name')->get())->resolve($request),
@@ -130,7 +150,7 @@ class PortalController extends Controller
 
     public function storeCourse(Request $request): JsonResponse
     {
-        abort_unless($request->user()->role === 'admin', 403);
+        Gate::authorize('create', Course::class);
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:20', 'unique:courses,code'],
             'name' => ['required', 'string', 'max:150'],
@@ -140,7 +160,7 @@ class PortalController extends Controller
             'status' => ['required', 'in:draft,active,archived'],
         ]);
 
-        $course = new Course();
+        $course = new Course;
         $course->code = $validated['code'];
         $course->name = $validated['name'];
         $course->description = $validated['description'] ?? '';
@@ -155,7 +175,7 @@ class PortalController extends Controller
 
     public function updateCourse(Request $request, Course $course): JsonResponse
     {
-        abort_unless($request->user()->role === 'admin', 403);
+        Gate::authorize('update', $course);
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:20', Rule::unique('courses', 'code')->ignore($course->id)],
             'name' => ['required', 'string', 'max:150'],
@@ -179,18 +199,17 @@ class PortalController extends Controller
 
     public function destroyCourse(Request $request, Course $course): JsonResponse
     {
-        abort_unless($request->user()->role === 'admin', 403);
+        Gate::authorize('delete', $course);
         $course->delete();
 
         return response()->json(['data' => ['message' => 'Mata kuliah berhasil dihapus.']]);
     }
 
-    public function storeMaterial(Request $request, Course $course): JsonResponse
+    public function storeMaterial(StoreMaterialRequest $request, Course $course): JsonResponse
     {
-        $this->authorizeLecturer($request, $course);
-        $validated = $this->validateMaterial($request, true);
+        $validated = $request->validated();
 
-        $material = new Material();
+        $material = new Material;
         $material->course_id = $course->id;
         $material->uploaded_by = $request->user()->id;
         $this->fillMaterial($request, $material, $validated);
@@ -202,7 +221,7 @@ class PortalController extends Controller
 
     public function showMaterial(Request $request, Material $material): JsonResponse
     {
-        $this->authorizeCourseAccess($request, $material->course);
+        Gate::authorize('view', $material);
         $material->load(['uploader', 'course']);
 
         return response()->json(['data' => (new MaterialResource($material))->resolve($request)]);
@@ -210,7 +229,7 @@ class PortalController extends Controller
 
     public function downloadMaterial(Request $request, Material $material)
     {
-        $this->authorizeCourseAccess($request, $material->course);
+        Gate::authorize('view', $material);
         abort_unless($material->file_path, 404, 'File materi tidak tersedia.');
 
         return Storage::disk('public')->download(
@@ -221,7 +240,7 @@ class PortalController extends Controller
 
     public function updateMaterial(Request $request, Material $material): JsonResponse
     {
-        $this->authorizeLecturer($request, $material->course);
+        Gate::authorize('update', $material);
         $validated = $this->validateMaterial($request, false);
         $this->fillMaterial($request, $material, $validated);
         $material->save();
@@ -232,7 +251,7 @@ class PortalController extends Controller
 
     public function destroyMaterial(Request $request, Material $material): JsonResponse
     {
-        $this->authorizeLecturer($request, $material->course);
+        Gate::authorize('delete', $material);
         if ($material->file_path) {
             Storage::disk('public')->delete($material->file_path);
         }
@@ -243,10 +262,9 @@ class PortalController extends Controller
 
     public function enrollmentCandidates(Request $request, Course $course): JsonResponse
     {
-        abort_unless($request->user()->role === 'admin', 403);
-        $enrolledIds = $course->students()->pluck('users.id');
+        Gate::authorize('manageEnrollment', $course);
         $students = User::where('role', 'mahasiswa')
-            ->whereNotIn('id', $enrolledIds)
+            ->whereDoesntHave('courses', fn ($query) => $query->whereKey($course->id))
             ->orderBy('name')
             ->get();
 
@@ -260,7 +278,7 @@ class PortalController extends Controller
 
     public function courseStudents(Request $request, Course $course): JsonResponse
     {
-        abort_unless($request->user()->role === 'admin', 403);
+        Gate::authorize('manageEnrollment', $course);
         $students = $course->students()->orderBy('name')->paginate(20);
 
         return ApiResponse::collection($students, UserResource::class, $request);
@@ -268,10 +286,7 @@ class PortalController extends Controller
 
     public function storeEnrollment(Request $request, Course $course): JsonResponse
     {
-        abort_unless(in_array($request->user()->role, ['admin', 'dosen'], true), 403);
-        if ($request->user()->role === 'dosen') {
-            $this->authorizeLecturer($request, $course);
-        }
+        Gate::authorize('manageEnrollment', $course);
         $validated = $request->validate([
             'user_id' => ['required', 'integer', Rule::exists('users', 'id')->where('role', 'mahasiswa')],
         ]);
@@ -283,10 +298,7 @@ class PortalController extends Controller
 
     public function destroyEnrollment(Request $request, Course $course, User $user): JsonResponse
     {
-        abort_unless(in_array($request->user()->role, ['admin', 'dosen'], true), 403);
-        if ($request->user()->role === 'dosen') {
-            $this->authorizeLecturer($request, $course);
-        }
+        Gate::authorize('manageEnrollment', $course);
         abort_unless($user->role === 'mahasiswa', 404);
         $course->students()->detach($user->id);
 
@@ -330,22 +342,5 @@ class PortalController extends Controller
             $material->file_size = null;
             $material->mime_type = null;
         }
-    }
-
-    private function authorizeLecturer(Request $request, Course $course): void
-    {
-        abort_unless($request->user()->role === 'dosen' && $course->lecturer_id === $request->user()->id, 403);
-    }
-
-    private function authorizeCourseAccess(Request $request, Course $course): void
-    {
-        $user = $request->user();
-        $allowed = match ($user->role) {
-            'admin' => true,
-            'dosen' => $course->lecturer_id === $user->id,
-            'mahasiswa' => $course->students()->whereKey($user->id)->exists(),
-            default => false,
-        };
-        abort_unless($allowed, 403);
     }
 }
