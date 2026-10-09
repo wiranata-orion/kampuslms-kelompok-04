@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->name('api.v1.')->middleware('throttle:60,1')->group(function () {
     // Guest / Public Auth Routes
     Route::post('/auth/login', [AuthController::class, 'login'])
-        ->middleware('throttle:100,1')
+        ->middleware('throttle:60,1')
         ->name('login');
 
     // Authenticated Routes
