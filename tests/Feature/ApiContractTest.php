@@ -5,9 +5,11 @@ namespace Tests\Feature;
 use App\Http\Resources\UserResource;
 use App\Models\Assignment;
 use App\Models\Course;
+use App\Models\Grade;
 use App\Models\Material;
 use App\Models\User;
 use App\Support\ApiResponse;
+use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoAccountSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -93,6 +95,14 @@ class ApiContractTest extends TestCase
             ->assertJsonPath('message', 'Akun admin tidak dapat mengganti kata sandi melalui fitur ini.');
 
         $this->assertTrue(Hash::check('current-password', $admin->fresh()->password));
+    }
+
+    public function test_database_seeder_runs_with_lazy_loading_prevention_enabled(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertDatabaseCount('users', 34);
+        $this->assertGreaterThan(0, Grade::query()->count());
     }
 
     public function test_direct_password_reset_updates_the_password_for_a_matching_nim(): void
