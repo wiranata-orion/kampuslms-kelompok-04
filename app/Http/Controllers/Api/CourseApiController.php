@@ -16,14 +16,27 @@ class CourseApiController extends Controller
     {
         $user = $request->user();
 
-        $courses = match ($user->role) {
-            'admin' => Course::query(),
-            'dosen' => $user->taughtCourses(),
-            'mahasiswa' => $user->courses(),
-            default => abort(403),
-        };
+        abort_unless(in_array($user->role, ['admin', 'dosen', 'mahasiswa'], true), 403);
+
+        $scope = $request->query('scope', $request->route('scope', 'my'));
+        abort_unless(in_array($scope, ['all', 'my'], true), 422, 'Scope mata kuliah tidak valid.');
+        $request->validate(['status' => ['sometimes', 'in:draft,active,archived']]);
+
+        $courses = $scope === 'all'
+            ? Course::query()
+            : match ($user->role) {
+                'admin' => Course::query(),
+                'dosen' => $user->taughtCourses(),
+                'mahasiswa' => $user->courses(),
+            };
 
         $courses = $courses
+            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->query('status')))
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->query('search'));
+                $query->where(fn ($q) => $q->where('code', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%"));
+            })
             ->with('lecturer')
             ->withCount(['materials', 'assignments'])
             ->orderBy('name')

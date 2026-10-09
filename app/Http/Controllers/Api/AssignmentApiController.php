@@ -15,6 +15,23 @@ use Illuminate\Validation\ValidationException;
 
 class AssignmentApiController extends Controller
 {
+    public function show(Request $request, int $id): AssignmentResource
+    {
+        $assignment = Assignment::with('course')->findOrFail($id);
+        $course = $assignment->course;
+        $user = $request->user();
+        $allowed = match ($user->role) {
+            'admin' => true,
+            'dosen' => $course->lecturer_id === $user->id,
+            'mahasiswa' => $assignment->status === 'published'
+                && $course->students()->whereKey($user->id)->exists(),
+            default => false,
+        };
+        abort_unless($allowed, 403);
+
+        return new AssignmentResource($assignment);
+    }
+
     public function store(Request $request)
     {
         abort_unless($request->user()->role === 'dosen', 403);

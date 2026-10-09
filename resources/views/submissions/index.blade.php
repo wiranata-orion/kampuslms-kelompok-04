@@ -1,8 +1,0 @@
-<x-layout title="Pengumpulan · {{ $assignment->title }}">
-	<section class="page-heading"><div><span class="eyebrow">{{ $assignment->course->code }} · {{ $assignment->title }}</span><h1>Pengumpulan mahasiswa</h1><p class="subtitle">Periksa pekerjaan dan berikan penilaian.</p></div><a class="btn btn-quiet" href="{{ route('dosen.assignments.show', $assignment) }}">Kembali ke tugas</a></section>
-	<section class="panel">
-		@if ($submissions->isEmpty()) <div class="empty-state"><span class="empty-mark">0</span><h2>Belum ada pengumpulan</h2><p>Pengumpulan mahasiswa akan muncul di halaman ini.</p></div>
-		@else <div class="table-wrap"><table><thead><tr><th>Mahasiswa</th><th>Waktu kirim</th><th>Status</th><th>Nilai</th><th>Aksi</th></tr></thead><tbody>@foreach ($submissions as $submission)<tr><td><span class="table-primary">{{ $submission->student->name ?? 'Mahasiswa' }}</span><span class="table-meta">{{ $submission->student->nim_nip ?? $submission->student->email ?? '' }}</span></td><td>{{ $submission->submitted_at?->format('d M Y, H:i') }}</td><td><span class="pill {{ $submission->is_late ? 'pill-pink' : 'pill-green' }}">{{ $submission->is_late ? 'Terlambat' : 'Tepat waktu' }}</span></td><td>@if($submission->grade)<span class="pill pill-blue">{{ $submission->grade->score }} / {{ $assignment->max_score }}</span>@else<span class="pill pill-muted">Belum dinilai</span>@endif</td><td><a class="btn btn-quiet btn-small" href="{{ route('dosen.submissions.show', $submission) }}">Periksa</a></td></tr>@endforeach</tbody></table></div> @endif
-		<x-pagination :paginator="$submissions" />
-	</section>
-</x-layout>

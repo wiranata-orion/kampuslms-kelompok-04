@@ -1,6 +1,0 @@
-<x-layout title="Pengumpulan Saya · Kampuskin">
-	<section class="page-heading"><div><span class="eyebrow">Status pengumpulan</span><h1>{{ $submission->assignment->title }}</h1><p class="subtitle">{{ $submission->assignment->course->name }} · dikumpulkan {{ $submission->submitted_at?->format('d M Y, H:i') }}</p></div><span class="pill {{ $submission->is_late ? 'pill-pink' : 'pill-green' }}">{{ $submission->is_late ? 'Terlambat' : 'Terkumpul' }}</span></section>
-	<section class="panel panel-tint"><dl class="detail-list"><dt>File tugas</dt><dd><a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($submission->file_path) }}" target="_blank" rel="noopener">{{ $submission->original_name }}</a></dd><dt>Ukuran file</dt><dd>{{ number_format($submission->file_size / 1024, 0) }} KB</dd><dt>Catatan</dt><dd>{{ $submission->note ?: 'Tidak ada catatan.' }}</dd><dt>Batas pengumpulan</dt><dd>{{ $submission->assignment->due_at?->format('d M Y, H:i') }}</dd></dl>
-		<div class="actions"><a class="btn btn-quiet" href="{{ route('mahasiswa.submissions.edit', $submission) }}">Edit pengumpulan</a><a class="btn btn-blue" href="{{ route('mahasiswa.submissions.grade.show', $submission) }}">Lihat nilai</a></div>
-	</section>
-</x-layout>

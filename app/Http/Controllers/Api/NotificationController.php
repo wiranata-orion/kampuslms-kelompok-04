@@ -25,4 +25,11 @@ class NotificationController extends Controller
 			'data' => (new NotificationResource($notification))->resolve($request),
 		]);
 	}
+
+	public function readAll(Request $request)
+	{
+		$request->user()->unreadNotifications()->update(['read_at' => now()]);
+
+		return response()->json(['data' => ['message' => 'Semua notifikasi telah ditandai dibaca.']]);
+	}
 }

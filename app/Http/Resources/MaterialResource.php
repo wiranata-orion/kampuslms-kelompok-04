@@ -26,6 +26,11 @@ class MaterialResource extends JsonResource
             'mime_type' => $this->mime_type,
             'external_url' => $this->external_url,
             'uploader' => $this->whenLoaded('uploader', fn () => new UserResource($this->uploader)),
+            'course' => $this->whenLoaded('course', fn () => [
+                'id' => $this->course->id,
+                'code' => $this->course->code,
+                'name' => $this->course->name,
+            ]),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

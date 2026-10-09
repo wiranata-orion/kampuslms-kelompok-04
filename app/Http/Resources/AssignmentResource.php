@@ -24,6 +24,11 @@ class AssignmentResource extends JsonResource
             'max_score' => $this->max_score,
             'allow_late' => $this->allow_late,
             'status' => $this->status,
+            'course' => $this->whenLoaded('course', fn () => [
+                'id' => $this->course->id,
+                'code' => $this->course->code,
+                'name' => $this->course->name,
+            ]),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

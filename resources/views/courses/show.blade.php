@@ -1,7 +1,0 @@
-<x-layout title="{{ $course->name }} · Kampuskin">
-    <section class="page-heading"><div><span class="eyebrow">Detail mata kuliah</span><h1>{{ $course->name }}</h1><p class="subtitle">{{ $course->code }} <span class="pill pill-blue">{{ $course->sks }} SKS</span></p></div><a class="btn btn-quiet" href="{{ route('courses.index') }}">Kembali ke katalog</a></section>
-    <section class="panel panel-tint"><span class="pill {{ $course->status === 'active' ? 'pill-green' : 'pill-pink' }}">{{ $course->status }}</span><dl class="detail-list"><dt>Kode kelas</dt><dd>{{ $course->code }}</dd><dt>Dosen pengampu</dt><dd>{{ $course->lecturer->name ?? 'Belum ditentukan' }}</dd><dt>Deskripsi</dt><dd>{{ $course->description ?: 'Belum ada deskripsi.' }}</dd></dl>
-        @if (auth()->user()->role === 'admin') <div class="actions"><a class="btn" href="{{ route('admin.courses.edit', $course) }}">Edit mata kuliah</a><form class="inline-form" action="{{ route('admin.courses.destroy', $course) }}" method="POST" onsubmit="return confirm('Hapus mata kuliah ini?')">@csrf @method('DELETE')<button class="btn btn-danger" type="submit">Hapus</button></form></div> @endif
-        @if (auth()->user()->role === 'dosen' && $course->lecturer_id === auth()->id()) <div class="actions"><a class="btn" href="{{ route('dosen.courses.materials.index', $course) }}">Kelola materi</a><a class="btn btn-blue" href="{{ route('dosen.courses.assignments.index', $course) }}">Kelola tugas</a></div> @endif
-    </section>
-</x-layout>

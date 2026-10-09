@@ -103,8 +103,17 @@ class ApiContractTest extends TestCase
         $this->assertSame(['data', 'meta'], array_keys($body));
         $this->assertSame(['current_page' => 1, 'last_page' => 1, 'total' => 1], $body['meta']);
         $this->assertSame('API101', $body['data'][0]['code']);
+        $this->assertSame($lecturer->id, $body['data'][0]['lecturer_id']);
         $this->assertSame($lecturer->id, $body['data'][0]['lecturer']['id']);
         $this->assertSame(['materials' => 0, 'assignments' => 0], $body['data'][0]['counts']);
+
+        $this->getJson('/api/v1/my/courses')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.code', 'API101');
+        $this->getJson('/api/v1/courses?scope=all&status=active')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 2);
 
         $this->getJson('/api/v1/courses/'.$otherCourse->id)
             ->assertForbidden()
@@ -147,6 +156,129 @@ class ApiContractTest extends TestCase
             ->assertJsonPath('data.0.status', 'published');
     }
 
+    public function test_material_file_download_is_authenticated_and_course_scoped(): void
+    {
+        Storage::fake('public');
+        $lecturer = User::factory()->dosen()->create();
+        $student = User::factory()->create();
+        $course = $this->createCourse($lecturer, 'API250');
+        $course->students()->attach($student->id, ['enrolled_at' => now()]);
+        $path = UploadedFile::fake()->create('slide.pdf', 10, 'application/pdf')
+            ->store('materials', 'public');
+
+        $material = new Material();
+        $material->course_id = $course->id;
+        $material->uploaded_by = $lecturer->id;
+        $material->title = 'Slide kuliah';
+        $material->description = '';
+        $material->type = 'file';
+        $material->file_path = $path;
+        $material->original_name = 'slide.pdf';
+        $material->file_size = 10240;
+        $material->mime_type = 'application/pdf';
+        $material->save();
+
+        $this->actingAs($student, 'sanctum')
+            ->get('/api/v1/materials/'.$material->id.'/download')
+            ->assertOk()
+            ->assertDownload('slide.pdf');
+
+        $outsider = User::factory()->create();
+        $this->actingAs($outsider, 'sanctum')
+            ->getJson('/api/v1/materials/'.$material->id.'/download')
+            ->assertForbidden();
+    }
+
+    public function test_admin_user_course_and_enrollment_crud_are_available_through_api(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $lecturer = User::factory()->dosen()->create();
+
+        $studentResponse = $this->actingAs($admin, 'sanctum')->postJson('/api/v1/users', [
+            'name' => 'Mahasiswa API',
+            'email' => 'mahasiswa-api@example.test',
+            'password' => 'password',
+            'role' => 'mahasiswa',
+            'nim_nip' => 'MHS-API-1',
+        ])->assertCreated()->assertJsonPath('data.role', 'mahasiswa');
+        $studentId = $studentResponse->json('data.id');
+
+        $this->putJson('/api/v1/users/'.$studentId, [
+            'name' => 'Mahasiswa API Diubah',
+            'email' => 'mahasiswa-api@example.test',
+            'role' => 'mahasiswa',
+            'nim_nip' => 'MHS-API-1',
+        ])->assertOk()->assertJsonPath('data.name', 'Mahasiswa API Diubah');
+
+        $courseResponse = $this->postJson('/api/v1/courses', [
+            'code' => 'CRUD101',
+            'name' => 'Mata Kuliah CRUD',
+            'description' => 'Kelas API',
+            'sks' => 3,
+            'lecturer_id' => $lecturer->id,
+            'status' => 'active',
+        ])->assertCreated()->assertJsonPath('data.code', 'CRUD101');
+        $courseId = $courseResponse->json('data.id');
+
+        $this->putJson('/api/v1/courses/'.$courseId, [
+            'code' => 'CRUD101',
+            'name' => 'Mata Kuliah CRUD Diubah',
+            'description' => 'Kelas API',
+            'sks' => 3,
+            'lecturer_id' => $lecturer->id,
+            'status' => 'active',
+        ])->assertOk()->assertJsonPath('data.name', 'Mata Kuliah CRUD Diubah');
+
+        $this->getJson('/api/v1/courses/'.$courseId.'/enrollments/candidates')
+            ->assertOk()
+            ->assertJsonPath('data.candidates.0.id', $studentId);
+
+        $this->postJson('/api/v1/courses/'.$courseId.'/enrollments', ['user_id' => $studentId])
+            ->assertCreated();
+        $this->getJson('/api/v1/courses/'.$courseId.'/students')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $studentId);
+        $this->postJson('/api/v1/courses/'.$courseId.'/enrollments', ['user_id' => $studentId])
+            ->assertStatus(409);
+        $this->deleteJson('/api/v1/courses/'.$courseId.'/enrollments/'.$studentId)
+            ->assertOk();
+
+        $this->deleteJson('/api/v1/courses/'.$courseId)->assertOk();
+        $this->deleteJson('/api/v1/users/'.$studentId)->assertOk();
+    }
+
+    public function test_lecturer_can_create_read_update_and_delete_link_materials_through_api(): void
+    {
+        $lecturer = User::factory()->dosen()->create();
+        $course = $this->createCourse($lecturer, 'MAT401');
+        $this->actingAs($lecturer, 'sanctum');
+
+        $materialResponse = $this->postJson('/api/v1/courses/'.$course->id.'/materials', [
+            'title' => 'Referensi API',
+            'description' => 'Tautan referensi',
+            'type' => 'link',
+            'external_url' => 'https://example.test/reference',
+        ])->assertCreated()->assertJsonPath('data.title', 'Referensi API');
+        $materialId = $materialResponse->json('data.id');
+
+        $this->getJson('/api/v1/materials/'.$materialId)
+            ->assertOk()
+            ->assertJsonPath('data.course_id', $course->id)
+            ->assertJsonPath('data.external_url', 'https://example.test/reference');
+
+        $this->putJson('/api/v1/materials/'.$materialId, [
+            'title' => 'Referensi API Diubah',
+            'description' => 'Tautan diperbarui',
+            'type' => 'link',
+            'external_url' => 'https://example.test/updated',
+        ])->assertOk()->assertJsonPath('data.title', 'Referensi API Diubah')
+            ->assertJsonPath('data.external_url', 'https://example.test/updated');
+
+        $this->deleteJson('/api/v1/materials/'.$materialId)->assertOk();
+        $this->assertDatabaseMissing('materials', ['id' => $materialId]);
+    }
+
     public function test_assignment_submission_and_grade_endpoints_use_contract_statuses(): void
     {
         Storage::fake('local');
@@ -179,10 +311,17 @@ class ApiContractTest extends TestCase
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.student.id', $student->id);
 
-        $this->putJson('/api/v1/submissions/'.$submissionId.'/grade', [
+        $grade = $this->putJson('/api/v1/submissions/'.$submissionId.'/grade', [
             'score' => 80,
             'feedback' => 'Baik',
         ])->assertCreated()->assertJsonPath('data.score', '80.00');
+        $gradeId = $grade->json('data.id');
+
+        $this->getJson('/api/v1/grades/'.$gradeId)
+            ->assertOk()
+            ->assertJsonPath('data.id', $submissionId)
+            ->assertJsonPath('data.grade.id', $gradeId)
+            ->assertJsonPath('data.assignment.course.code', 'API301');
 
         $this->putJson('/api/v1/submissions/'.$submissionId.'/grade', [
             'score' => 90,
@@ -221,6 +360,19 @@ class ApiContractTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $notificationId)
             ->assertJsonPath('data.read_at', fn ($value) => $value !== null);
+
+        $secondNotificationId = (string) Str::uuid();
+        DB::table('notifications')->insert([
+            'id' => $secondNotificationId,
+            'type' => 'App\\Notifications\\TestNotification',
+            'notifiable_type' => $user->getMorphClass(),
+            'notifiable_id' => $user->id,
+            'data' => json_encode(['message' => 'Pengumuman']),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->postJson('/api/v1/notifications/read-all')->assertOk();
+        $this->assertNotNull(DB::table('notifications')->where('id', $secondNotificationId)->value('read_at'));
     }
 
     private function createCourse(User $lecturer, string $code): Course
