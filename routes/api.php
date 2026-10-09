@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AssignmentApiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CourseApiController;
+use App\Http\Controllers\Api\DirectResetPasswordController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PortalController;
 use App\Http\Controllers\Api\SubmissionController;
@@ -10,6 +11,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->middleware('throttle:60,1')->group(function () {
     // Guest / Public Auth Routes
+
+    Route::prefix('auth')->group(function () {
+        Route::post('/check-user', [DirectResetPasswordController::class, 'checkUser']);
+        Route::post('/reset-password', [DirectResetPasswordController::class, 'resetPassword']);
+    });
+
     Route::post('/auth/login', [AuthController::class, 'login'])
         ->middleware('throttle:60,1')
         ->name('login');

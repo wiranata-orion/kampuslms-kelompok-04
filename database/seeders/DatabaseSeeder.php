@@ -97,7 +97,7 @@ class DatabaseSeeder extends Seeder
         }
 
         // 7. Penilaian Submissions (>= 100 submission, ~60% dinilai)
-        $submissions = Submission::all();
+        $submissions = Submission::with('assignment.course')->get();
         $targetGradedCount = (int) ($submissions->count() * 0.6);
 
         $submissionsToGrade = $submissions->random(min($targetGradedCount, $submissions->count()));
