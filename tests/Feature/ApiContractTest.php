@@ -8,11 +8,13 @@ use App\Models\Course;
 use App\Models\Material;
 use App\Models\User;
 use App\Support\ApiResponse;
+use Database\Seeders\DemoAccountSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -34,6 +36,79 @@ class ApiContractTest extends TestCase
             ->assertStatus(422)
             ->assertJsonPath('message', 'Data yang diberikan tidak valid.')
             ->assertJsonStructure(['message', 'errors' => ['email', 'password']]);
+    }
+
+    public function test_direct_password_reset_can_find_a_user_by_nim_or_email(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'reset@example.test',
+            'nim_nip' => 'NIM-RESET-1',
+        ]);
+
+        $this->postJson('/api/v1/auth/check-user', ['identifier' => $user->nim_nip])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->postJson('/api/v1/auth/check-user', ['identifier' => $user->email])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->postJson('/api/v1/auth/check-user', ['identifier' => 'missing@example.test'])
+            ->assertUnprocessable()
+            ->assertJsonPath('success', false);
+    }
+
+    public function test_demo_admin_cannot_use_password_reset_but_other_demo_accounts_can(): void
+    {
+        $this->seed(DemoAccountSeeder::class);
+
+        $this->postJson('/api/v1/auth/check-user', ['identifier' => 'admin@kampuslms.test'])
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Akun admin tidak dapat mengganti kata sandi melalui fitur ini.');
+
+        foreach ([
+            'dosen@kampuslms.test',
+            'mahasiswa@kampuslms.test',
+            '198801012022011001',
+            '10241001',
+        ] as $identifier) {
+            $this->postJson('/api/v1/auth/check-user', ['identifier' => $identifier])
+                ->assertOk()
+                ->assertJsonPath('success', true);
+        }
+    }
+
+    public function test_admin_password_cannot_be_changed_through_reset_endpoint(): void
+    {
+        $admin = User::factory()->admin()->create([
+            'email' => 'admin-reset@example.test',
+            'password' => 'current-password',
+        ]);
+
+        $this->postJson('/api/v1/auth/reset-password', [
+            'identifier' => $admin->email,
+            'password' => 'new-password-123',
+            'password_confirmation' => 'new-password-123',
+        ])->assertForbidden()
+            ->assertJsonPath('message', 'Akun admin tidak dapat mengganti kata sandi melalui fitur ini.');
+
+        $this->assertTrue(Hash::check('current-password', $admin->fresh()->password));
+    }
+
+    public function test_direct_password_reset_updates_the_password_for_a_matching_nim(): void
+    {
+        $user = User::factory()->create(['nim_nip' => 'NIM-RESET-2']);
+        $user->createToken('existing-session');
+
+        $this->postJson('/api/v1/auth/reset-password', [
+            'identifier' => $user->nim_nip,
+            'password' => 'new-password-123',
+            'password_confirmation' => 'new-password-123',
+        ])->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertTrue(Hash::check('new-password-123', $user->fresh()->password));
+        $this->assertDatabaseCount('personal_access_tokens', 0);
     }
 
     public function test_forbidden_assignment_request_returns_the_contract_message(): void
