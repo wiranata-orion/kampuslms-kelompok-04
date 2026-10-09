@@ -139,13 +139,32 @@ curl "$API/me" -H "Accept: application/json" \
 
 **Gagal `401`:** `{"message":"Unauthenticated."}`.
 
+### Mengubah profil sendiri
+
+**Method / URI:** `PATCH /api/v1/me`
+**Peran:** Semua role dengan token valid. Body harus menyertakan `name` atau
+`password`; pengguna tidak dapat mengubah role, email, atau NIM/NIP melalui route
+ini.
+
+```bash
+curl -X PATCH "$API/me" \
+	-H "Accept: application/json" -H "Content-Type: application/json" \
+	-H "Authorization: ******" \
+	-d '{"name":"Nama Baru"}'
+```
+
+**Sukses `200`:** Resource pengguna saat ini. Request yang menyertakan `role`
+ditolak `403`.
+
 ## Mata Kuliah
 
 ### Daftar mata kuliah
 
 **Method / URI:** `GET /api/v1/courses`  
 **Peran:** Semua role. Admin melihat semua course, dosen melihat course yang diampu, mahasiswa melihat course tempatnya terdaftar.  
-**Parameter query:** `page` (opsional, default `1`).
+Mahasiswa hanya melihat course berstatus `active`. `scope=all` tidak melewati batas
+akses role. **Parameter query:** `page` (opsional, default `1`), `scope` (`my` atau
+`all`, opsional), `status`, dan `search`.
 
 ```bash
 curl "$API/courses?page=1" -H "Accept: application/json" \
@@ -310,7 +329,7 @@ curl "$API/courses/3/assignments?status=published&page=1" \
 ### Membuat tugas
 
 **Method / URI:** `POST /api/v1/assignments`  
-**Peran:** Dosen saja, dan hanya pada course yang diampu dosen tersebut.  
+**Peran:** Admin pada semua course atau dosen pada course yang diampu.
 **Parameter body:** `course_id` (wajib, ID course), `title` (wajib, maks. 150 karakter), `instructions` (wajib), `due_at` (wajib, tanggal/waktu), `status` (wajib: `draft` atau `published`), `max_score` (opsional, integer 1-100; default 100), `allow_late` (opsional, boolean; default `true`).
 
 ```bash
@@ -344,7 +363,7 @@ curl -X POST "$API/assignments" \
 ### Mengubah tugas
 
 **Method / URI:** `PUT /api/v1/assignments/{assignment}` atau `PATCH /api/v1/assignments/{assignment}`  
-**Peran:** Dosen pengampu course tugas.  
+**Peran:** Admin atau dosen pengampu course tugas.
 **Parameter path:** `assignment` (ID tugas). `PUT` mewajibkan `title`, `instructions`, `due_at`, dan `status`; `PATCH` menerima field tersebut secara opsional. Keduanya menerima `max_score` (integer 1-100 atau null) dan `allow_late` (boolean) secara opsional.
 
 ```bash
@@ -365,7 +384,8 @@ curl -X PATCH "$API/assignments/8" \
 ### Menghapus tugas
 
 **Method / URI:** `DELETE /api/v1/assignments/{assignment}`  
-**Peran:** Dosen pengampu course tugas.  
+**Peran:** Admin atau dosen pengampu course tugas. Tugas yang sudah memiliki nilai
+tidak dapat dihapus.
 **Parameter path:** `assignment` (ID tugas). Tidak ada body.
 
 ```bash
@@ -380,7 +400,7 @@ curl -X DELETE "$API/assignments/8" -H "Accept: application/json" \
 ### Daftar pengumpulan tugas
 
 **Method / URI:** `GET /api/v1/assignments/{assignment}/submissions`  
-**Peran:** Dosen pengampu course tugas.  
+**Peran:** Admin atau dosen pengampu course tugas.
 **Parameter path:** `assignment` (ID tugas). **Query:** `page` (opsional).
 
 ```bash
@@ -412,11 +432,12 @@ curl "$API/assignments/8/submissions?page=1" \
 
 **Gagal `403`:** `{"message":"Anda tidak memiliki akses ke sumber daya ini."}`.
 
-### Mengumpulkan atau mengganti jawaban
+### Mengumpulkan jawaban
 
 **Method / URI:** `POST /api/v1/assignments/{assignment}/submissions`  
-**Peran:** Mahasiswa yang terdaftar pada course dan tugas berstatus `published`.  
-**Parameter path:** `assignment` (ID tugas). **Multipart form:** `file` (wajib, maksimum 10 MB), `note` (opsional, string). Jika sudah ada submission mahasiswa untuk tugas tersebut, file dan submission akan diganti.
+**Peran:** Mahasiswa yang terdaftar pada course aktif dan tugas berstatus `published`.
+Submission hanya dapat dibuat satu kali; revisi tidak diperbolehkan.
+**Parameter path:** `assignment` (ID tugas). **Multipart form:** `file` (wajib, maksimum 10 MB), `note` (opsional, string). Submission yang sudah ada tidak dapat diganti.
 
 ```bash
 curl -X POST "$API/assignments/8/submissions" \
@@ -424,7 +445,7 @@ curl -X POST "$API/assignments/8/submissions" \
 	-F "file=@jawaban.pdf" -F "note=Jawaban tugas"
 ```
 
-**Sukses:** `201` untuk submission baru, `200` jika submission sebelumnya diganti.
+**Sukses:** `201` untuk submission yang baru dibuat.
 
 ```json
 {
@@ -443,9 +464,10 @@ curl -X POST "$API/assignments/8/submissions" \
 }
 ```
 
-`file_path` tidak dikirim API. Jika `allow_late` bernilai `false` dan deadline terlewati, server mengembalikan `422`.
+`file_path` tidak dikirim API. Respons sukses selalu `201`. Jika `allow_late`
+bernilai `false` dan deadline terlewati, server mengembalikan `422`.
 
-**Gagal `403` (bukan mahasiswa terdaftar atau tugas tidak dipublikasikan):**
+**Gagal `403` (bukan mahasiswa terdaftar, tugas tidak dipublikasikan, atau sudah mengumpulkan):**
 
 ```json
 {"message":"Anda tidak memiliki akses ke sumber daya ini."}
@@ -454,7 +476,8 @@ curl -X POST "$API/assignments/8/submissions" \
 ### Memberi atau mengubah nilai
 
 **Method / URI:** `PUT /api/v1/submissions/{submission}/grade`  
-**Peran:** Dosen pengampu course dari submission.  
+**Peran:** Dosen pengampu course dari submission. Nilai yang diperbarui kembali
+menjadi belum dipublikasikan.
 **Parameter path:** `submission` (ID submission). **Body JSON:** `score` (wajib, angka 0 sampai `max_score` tugas), `feedback` (opsional, string atau null).
 
 ```bash
@@ -475,6 +498,7 @@ curl -X PUT "$API/submissions/12/grade" \
 		"score": "90.00",
 		"feedback": "Sangat baik.",
 		"graded_at": "2026-10-11T09:00:00+00:00",
+		"published_at": null,
 		"grader": {
 			"id": 2,
 			"name": "Dosen Demo",
@@ -486,6 +510,22 @@ curl -X PUT "$API/submissions/12/grade" \
 	}
 }
 ```
+
+**Gagal `403` (bukan dosen pengampu):** `{"message":"Anda tidak memiliki akses ke sumber daya ini."}`.
+
+### Mempublikasikan nilai
+
+**Method / URI:** `POST /api/v1/grades/{grade}/publish`
+**Peran:** Dosen pengampu course. Mahasiswa dapat melihat nilai miliknya setelah
+field `published_at` terisi. Mengubah nilai akan mengosongkan kembali field ini.
+
+```bash
+curl -X POST "$API/grades/4/publish" \
+	-H "Accept: application/json" \
+	-H "Authorization: ******"
+```
+
+**Sukses `200`:** Resource nilai yang memiliki `published_at` dalam format ISO 8601.
 
 **Gagal `403` (bukan dosen pengampu):** `{"message":"Anda tidak memiliki akses ke sumber daya ini."}`.
 
