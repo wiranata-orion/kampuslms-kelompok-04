@@ -23,6 +23,7 @@ class Grade extends Model
         return [
             'score' => 'decimal:2',
             'graded_at' => 'datetime',
+            'published_at' => 'datetime',
         ];
     }
 
