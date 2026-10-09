@@ -2,18 +2,21 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Assignment;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class StoreAssignmentRequest extends FormRequest
 {
 	public function authorize(): bool
 	{
-		return true;
+		return Gate::allows('createAny', Assignment::class);
 	}
 
 	public function rules(): array
 	{
 		return [
+			'course_id' => ['required', 'integer', 'exists:courses,id'],
 			'title' => ['required', 'string', 'max:150'],
 			'instructions' => ['required', 'string'],
 			'due_at' => ['required', 'date'],

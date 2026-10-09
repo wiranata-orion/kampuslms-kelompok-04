@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMaterialRequest;
+use App\Http\Requests\UpdateMaterialRequest;
 use App\Http\Resources\CourseResource;
 use App\Http\Resources\MaterialResource;
 use App\Http\Resources\UserResource;
@@ -212,7 +213,7 @@ class PortalController extends Controller
         $material = new Material;
         $material->course_id = $course->id;
         $material->uploaded_by = $request->user()->id;
-        $this->fillMaterial($request, $material, $validated);
+        $this->fillMaterial($material, $validated);
         $material->save();
         $material->load('uploader');
 
@@ -238,11 +239,10 @@ class PortalController extends Controller
         );
     }
 
-    public function updateMaterial(Request $request, Material $material): JsonResponse
+    public function updateMaterial(UpdateMaterialRequest $request, Material $material): JsonResponse
     {
-        Gate::authorize('update', $material);
-        $validated = $this->validateMaterial($request, false);
-        $this->fillMaterial($request, $material, $validated);
+        $validated = $request->validated();
+        $this->fillMaterial($material, $validated);
         $material->save();
         $material->load('uploader');
 
@@ -305,32 +305,16 @@ class PortalController extends Controller
         return response()->json(['data' => ['message' => 'Mahasiswa dikeluarkan dari mata kuliah.']]);
     }
 
-    private function validateMaterial(Request $request, bool $creating): array
-    {
-        return $request->validate([
-            'title' => ['required', 'string', 'max:150'],
-            'description' => ['nullable', 'string'],
-            'type' => ['required', 'in:file,link'],
-            'file' => [$creating ? 'required_if:type,file' : 'nullable', 'file', 'max:10240'],
-            'external_url' => ['required_if:type,link', 'nullable', 'url'],
-        ]);
-    }
-
-    private function fillMaterial(Request $request, Material $material, array $validated): void
+    private function fillMaterial(Material $material, array $validated): void
     {
         $material->title = $validated['title'];
         $material->description = $validated['description'] ?? '';
         $material->type = $validated['type'];
 
-        if ($validated['type'] === 'file' && $request->hasFile('file')) {
-            if ($material->file_path) {
-                Storage::disk('public')->delete($material->file_path);
-            }
-            $file = $request->file('file');
-            $material->file_path = $file->store('materials', 'public');
-            $material->original_name = $file->getClientOriginalName();
-            $material->file_size = $file->getSize();
-            $material->mime_type = $file->getMimeType();
+        if ($validated['type'] === 'file') {
+            $material->original_name = $validated['original_name'];
+            $material->file_size = $validated['file_size'];
+            $material->mime_type = $validated['mime_type'] ?? null;
             $material->external_url = null;
         } elseif ($validated['type'] === 'link') {
             if ($material->file_path) {

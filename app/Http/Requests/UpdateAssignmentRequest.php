@@ -2,24 +2,32 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Assignment;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class UpdateAssignmentRequest extends FormRequest
 {
 	public function authorize(): bool
 	{
-		return true;
+		$assignment = $this->route('assignment');
+
+		return $assignment instanceof Assignment
+			&& Gate::allows('update', $assignment);
 	}
 
 	public function rules(): array
 	{
+		$required = $this->isMethod('put') ? 'required' : 'sometimes';
+
 		return [
-			'title' => ['required', 'string', 'max:150'],
-			'instructions' => ['required', 'string'],
-			'due_at' => ['required', 'date'],
+			'course_id' => ['prohibited'],
+			'title' => [$required, 'string', 'max:150'],
+			'instructions' => [$required, 'string'],
+			'due_at' => [$required, 'date'],
 			'max_score' => ['nullable', 'integer', 'between:1,100'],
 			'allow_late' => ['nullable', 'boolean'],
-			'status' => ['required', 'in:draft,published'],
+			'status' => [$required, 'in:draft,published'],
 		];
 	}
 

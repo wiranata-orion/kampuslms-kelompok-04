@@ -7,10 +7,10 @@ const page = usePageData('course-assignments');
 
 <template>
     <PageFrame title="Tugas mata kuliah" :subtitle="page.data.value?.name" :loading="page.loading.value" :error="page.error.value" :pagination="page.pagination.value" @page="page.goToPage">
-        <template #actions><RouterLink v-if="page.user.value?.role === 'dosen'" class="button" :to="`/courses/${page.data.value?.id}/assignments/create`">Buat tugas</RouterLink></template>
+        <template #actions><RouterLink v-if="['admin', 'dosen'].includes(page.user.value?.role)" class="button" :to="`/courses/${page.data.value?.id}/assignments/create`">Buat tugas</RouterLink></template>
         <section class="panel">
             <div v-if="page.rows.value.length" class="table-wrap"><table><thead><tr><th>Tugas</th><th>Tenggat</th><th>Nilai maks.</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
-                <tr v-for="assignment in page.rows.value" :key="assignment.id"><td><RouterLink :to="`/assignments/${assignment.id}`">{{ assignment.title }}</RouterLink><span class="meta">{{ assignment.instructions }}</span></td><td>{{ assignment.due_at ? new Date(assignment.due_at).toLocaleString('id-ID') : '—' }}</td><td>{{ assignment.max_score }}</td><td>{{ assignment.status === 'published' ? 'Terbit' : 'Draft' }}</td><td><RouterLink :to="`/assignments/${assignment.id}`">Detail</RouterLink><template v-if="page.user.value?.role === 'dosen'"> · <RouterLink :to="`/assignments/${assignment.id}/edit`">Edit</RouterLink></template></td></tr>
+                <tr v-for="assignment in page.rows.value" :key="assignment.id"><td><RouterLink :to="`/assignments/${assignment.id}`">{{ assignment.title }}</RouterLink><span class="meta">{{ assignment.instructions }}</span></td><td>{{ assignment.due_at ? new Date(assignment.due_at).toLocaleString('id-ID') : '—' }}</td><td>{{ assignment.max_score }}</td><td>{{ assignment.status === 'published' ? 'Terbit' : 'Draft' }}</td><td class="row-actions"><RouterLink :to="`/assignments/${assignment.id}`">Detail</RouterLink><RouterLink v-if="assignment.permissions?.can_update" :to="`/assignments/${assignment.id}/edit`">Edit</RouterLink><button v-if="assignment.permissions?.can_delete" class="text-button" @click="page.remove('assignments', assignment)">Hapus</button></td></tr>
             </tbody></table></div>
             <div v-else class="empty"><h2>Belum ada tugas</h2><p>Tugas yang dibuat untuk kelas ini akan muncul di sini.</p></div>
         </section>

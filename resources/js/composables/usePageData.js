@@ -45,9 +45,11 @@ export function usePageData(page) {
             material: [
                 { name: 'title', label: 'Judul materi', required: true },
                 { name: 'description', label: 'Deskripsi', type: 'textarea' },
-                { name: 'type', label: 'Jenis materi', type: 'select', options: [{ value: 'file', text: 'File' }, { value: 'link', text: 'Tautan' }] },
+                { name: 'type', label: 'Jenis materi', type: 'select', required: true, options: [{ value: 'file', text: 'Berkas' }, { value: 'link', text: 'Tautan' }] },
+                { name: 'original_name', label: 'Nama berkas' },
+                { name: 'file_size', label: 'Ukuran berkas (byte)', type: 'number', min: 0 },
+                { name: 'mime_type', label: 'Tipe konten (MIME)' },
                 { name: 'external_url', label: 'URL eksternal', type: 'url' },
-                { name: 'file', label: 'Berkas', type: 'file' },
             ],
             user: [
                 { name: 'name', label: 'Nama lengkap', required: true },
@@ -281,12 +283,8 @@ export function usePageData(page) {
             }[page];
             if (page === 'assignment-form' && !editing) payload.course_id = id;
             if (page === 'material-form') {
-                const body = new FormData();
-                Object.entries(payload).forEach(([key, value]) => {
-                    if (value !== null && value !== undefined && value !== '') body.append(key, value);
-                });
-                if (editing) body.append('_method', 'PUT');
-                await api.post(resource.url, body);
+                if (editing) await api.put(resource.url, payload);
+                else await api.post(resource.url, payload);
             } else if (editing) {
                 await api.put(resource.url, payload);
             } else {
@@ -315,8 +313,8 @@ export function usePageData(page) {
             await api.delete(`/${kind}/${item.id}`);
             if (kind === 'courses') return router.push('/courses');
             if (kind === 'users' && page === 'user') return router.push('/users');
-            if (kind === 'assignments') return router.push(`/courses/${data.value.course_id}/assignments`);
-            if (kind === 'materials') return router.push(`/courses/${data.value.course_id}/materials`);
+            if (kind === 'assignments') return router.push(`/courses/${item.course_id ?? data.value.course_id ?? data.value.id}/assignments`);
+            if (kind === 'materials') return router.push(`/courses/${item.course_id ?? data.value.course_id ?? data.value.id}/materials`);
             await load();
         } catch (requestError) {
             error.value = getErrorMessage(requestError);

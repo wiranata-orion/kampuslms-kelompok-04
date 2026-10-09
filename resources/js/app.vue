@@ -58,22 +58,3 @@ watch(() => router.currentRoute.value.fullPath, () => {
     if (localStorage.getItem('kampuslms_token') && !user.value) loadUser();
 });
 </script>
-
-<style>
-:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #24213b; background: #f7f6fb; }
-* { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; min-height: 100vh; }
-a { color: #6656bd; text-decoration: none; }
-.app-shell { min-height: 100vh; }
-.topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; padding: 14px max(20px, calc((100vw - 1160px) / 2)); border-bottom: 1px solid #e8e5f0; background: #fff; }
-.brand, .nav-row { display: flex; align-items: center; gap: 12px; }
-.brand { color: inherit; font-size: 1.1rem; font-weight: 800; }
-.brand-mark { display: grid; width: 36px; aspect-ratio: 1; place-items: center; border-radius: 12px; background: #e9e4ff; color: #6552bd; }
-.nav-row { flex-wrap: wrap; }
-.nav-row a { padding: 8px 10px; border-radius: 8px; color: #514d66; }
-.nav-row a.router-link-active { background: #f0edff; color: #5744ad; }
-.page-wrap { width: min(1160px, calc(100% - 32px)); margin: 32px auto; }
-.button { padding: 9px 14px; border: 0; border-radius: 9px; background: #6552bd; color: white; cursor: pointer; font-weight: 700; }
-.button-quiet { border: 1px solid #dedbe8; background: #fff; color: #514d66; }
-.error { padding: 12px 14px; border-radius: 9px; background: #fff0f0; color: #ae3549; }
-</style>

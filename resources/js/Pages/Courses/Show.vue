@@ -10,8 +10,8 @@ const page = usePageData('course');
         <template #actions>
             <RouterLink v-if="page.data.value && page.user.value?.role === 'admin'" class="button" :to="`/courses/${page.data.value.id}/edit`">Edit mata kuliah</RouterLink>
             <RouterLink v-if="page.data.value && page.user.value?.role === 'admin'" class="button button-quiet" :to="`/courses/${page.data.value.id}/enrollments`">Kelola peserta</RouterLink>
-            <RouterLink v-if="page.data.value && page.user.value?.role === 'dosen'" class="button" :to="`/courses/${page.data.value.id}/assignments/create`">Buat tugas</RouterLink>
-            <RouterLink v-if="page.data.value && page.user.value?.role === 'dosen'" class="button button-quiet" :to="`/courses/${page.data.value.id}/materials/create`">Tambah materi</RouterLink>
+            <RouterLink v-if="page.data.value && ['admin', 'dosen'].includes(page.user.value?.role)" class="button" :to="`/courses/${page.data.value.id}/assignments/create`">Buat tugas</RouterLink>
+            <RouterLink v-if="page.data.value && ['admin', 'dosen'].includes(page.user.value?.role)" class="button button-quiet" :to="`/courses/${page.data.value.id}/materials/create`">Tambah materi</RouterLink>
         </template>
         <section v-if="page.data.value" class="panel">
             <span class="pill">{{ page.data.value.status }}</span><p>{{ page.data.value.description || 'Belum ada deskripsi.' }}</p><p>Dosen pengampu: {{ page.data.value.lecturer?.name ?? 'Belum ditentukan' }}</p>

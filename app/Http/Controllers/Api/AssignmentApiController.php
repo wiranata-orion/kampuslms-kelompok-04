@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreAssignmentRequest;
 use App\Http\Requests\StoreSubmissionRequest;
+use App\Http\Requests\UpdateAssignmentRequest;
 use App\Http\Resources\AssignmentResource;
 use App\Http\Resources\SubmissionResource;
 use App\Models\Assignment;
@@ -23,19 +25,9 @@ class AssignmentApiController extends Controller
         return new AssignmentResource($assignment);
     }
 
-    public function store(Request $request)
+    public function store(StoreAssignmentRequest $request)
     {
-        Gate::authorize('create', Assignment::class);
-
-        $validated = $request->validate([
-            'course_id' => ['required', 'integer', 'exists:courses,id'],
-            'title' => ['required', 'string', 'max:150'],
-            'instructions' => ['required', 'string'],
-            'due_at' => ['required', 'date'],
-            'max_score' => ['nullable', 'integer', 'between:1,100'],
-            'allow_late' => ['nullable', 'boolean'],
-            'status' => ['required', 'in:draft,published'],
-        ]);
+        $validated = $request->validated();
 
         $course = Course::findOrFail($validated['course_id']);
         Gate::authorize('create', [Assignment::class, $course]);
@@ -49,20 +41,10 @@ class AssignmentApiController extends Controller
         return (new AssignmentResource($assignment))->response()->setStatusCode(201);
     }
 
-    public function update(Request $request, int $id)
+    public function update(UpdateAssignmentRequest $request, Assignment $assignment)
     {
-        $assignment = Assignment::with('course')->findOrFail($id);
         Gate::authorize('update', $assignment);
-
-        $required = $request->isMethod('put') ? 'required' : 'sometimes';
-        $validated = $request->validate([
-            'title' => [$required, 'string', 'max:150'],
-            'instructions' => [$required, 'string'],
-            'due_at' => [$required, 'date'],
-            'max_score' => ['sometimes', 'nullable', 'integer', 'between:1,100'],
-            'allow_late' => ['sometimes', 'boolean'],
-            'status' => [$required, 'in:draft,published'],
-        ]);
+        $validated = $request->validated();
 
         $this->applyAssignmentInput($assignment, $validated);
         $assignment->save();

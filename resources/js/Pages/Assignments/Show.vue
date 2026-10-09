@@ -11,7 +11,7 @@ const note = ref('');
 <template>
     <PageFrame :title="page.data.value?.title ?? 'Detail tugas'" :subtitle="page.data.value ? `${page.data.value.course?.code ?? ''} · Batas ${new Date(page.data.value.due_at).toLocaleString('id-ID')}` : ''" :loading="page.loading.value" :error="page.error.value">
         <template #actions>
-            <RouterLink v-if="page.user.value?.role === 'dosen' && page.data.value" class="button button-quiet" :to="`/assignments/${page.data.value.id}/edit`">Edit tugas</RouterLink>
+            <RouterLink v-if="page.data.value?.permissions?.can_update" class="button button-quiet" :to="`/assignments/${page.data.value.id}/edit`">Edit tugas</RouterLink>
             <RouterLink v-if="page.user.value?.role === 'dosen' && page.data.value" class="button" :to="`/assignments/${page.data.value.id}/submissions`">Lihat pengumpulan</RouterLink>
         </template>
         <section v-if="page.data.value" class="panel">
@@ -23,7 +23,7 @@ const note = ref('');
                 <label for="submission-note">Catatan untuk dosen</label><textarea id="submission-note" v-model="note" /><button class="button">Kirim pengumpulan</button>
             </form>
             <h2 v-if="page.user.value?.role === 'dosen'">Pengumpulan terbaru</h2><ul v-if="page.user.value?.role === 'dosen'"><li v-for="submission in page.data.value.submissions" :key="submission.id"><RouterLink :to="`/submissions/${submission.id}`">{{ submission.student?.name ?? 'Mahasiswa' }}</RouterLink> — {{ submission.grade?.score ?? 'Belum dinilai' }}</li></ul>
-            <button v-if="page.user.value?.role === 'dosen'" class="button button-danger" @click="page.remove('assignments', page.data.value)">Hapus tugas</button>
+            <button v-if="page.data.value.permissions?.can_delete" class="button button-danger" @click="page.remove('assignments', page.data.value)">Hapus tugas</button>
         </section>
     </PageFrame>
 </template>

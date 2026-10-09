@@ -63,7 +63,7 @@ class CourseApiController extends Controller
         Gate::authorize('viewAny', [Material::class, $course]);
 
         $materials = $course->materials()
-            ->with('uploader')
+            ->with(['uploader', 'course'])
             ->latest()
             ->paginate(15);
 
@@ -80,6 +80,8 @@ class CourseApiController extends Controller
         ]);
 
         $assignments = $course->assignments()
+            ->with('course')
+            ->withCount('grades')
             ->when($request->user()->role === 'mahasiswa', fn ($query) => $query->where('status', 'published'))
             ->when(isset($validated['status']), fn ($query) => $query->where('status', $validated['status']))
             ->orderByDesc('due_at')

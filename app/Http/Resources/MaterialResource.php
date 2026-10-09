@@ -25,16 +25,19 @@ class MaterialResource extends JsonResource
             'file_size' => $this->file_size,
             'mime_type' => $this->mime_type,
             'external_url' => $this->external_url,
+            'download_available' => filled($this->file_path),
             'uploader' => $this->whenLoaded('uploader', fn () => new UserResource($this->uploader)),
             'course' => $this->whenLoaded('course', fn () => [
                 'id' => $this->course->id,
                 'code' => $this->course->code,
                 'name' => $this->course->name,
             ]),
-            'permissions' => $this->when($request->routeIs('api.v1.materials.show'), fn () => [
-                'view' => $request->user()?->can('view', $this->resource) ?? false,
+            'permissions' => $this->when($request->routeIs('api.v1.materials.show', 'api.v1.courses.materials'), fn () => [
+                'view' => true,
                 'update' => $request->user()?->can('update', $this->resource) ?? false,
                 'delete' => $request->user()?->can('delete', $this->resource) ?? false,
+                'can_update' => $request->user()?->can('update', $this->resource) ?? false,
+                'can_delete' => $request->user()?->can('delete', $this->resource) ?? false,
             ]),
             'created_at' => $this->created_at?->toIso8601String(),
         ];

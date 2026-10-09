@@ -17,7 +17,7 @@ defineEmits(['submit', 'file-change']);
     <form class="panel form-grid" @submit.prevent="$emit('submit')">
         <div
             v-for="field in fields"
-            v-show="!showMaterialFields || (field.name !== 'file' || model.type === 'file') && (field.name !== 'external_url' || model.type === 'link')"
+            v-show="!showMaterialFields || (field.name === 'external_url' ? model.type === 'link' : ['original_name', 'file_size', 'mime_type'].includes(field.name) ? model.type === 'file' : true)"
             :key="field.name"
             class="field"
             :class="{ 'span-all': field.type === 'textarea' }"
@@ -44,7 +44,7 @@ defineEmits(['submit', 'file-change']);
                 :min="field.min"
                 :max="field.max"
                 :step="field.step"
-                :required="field.required"
+                :required="field.required || (showMaterialFields && model.type === 'link' && field.name === 'external_url') || (showMaterialFields && model.type === 'file' && ['original_name', 'file_size'].includes(field.name))"
             >
         </div>
         <div class="span-all actions">

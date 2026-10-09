@@ -45,8 +45,13 @@ class AssignmentPolicy
 
     public function delete(User $user, Assignment $assignment): bool
     {
+        $attributes = $assignment->getAttributes();
+        $hasGrades = array_key_exists('grades_count', $attributes)
+            ? (int) $attributes['grades_count'] > 0
+            : $assignment->grades()->exists();
+
         return $this->canManageCourse($user, $assignment->course)
-            && ! $assignment->grades()->exists();
+            && ! $hasGrades;
     }
 
     private function canViewCourse(User $user, Course $course): bool

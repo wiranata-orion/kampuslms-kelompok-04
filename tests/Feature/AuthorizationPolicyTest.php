@@ -288,6 +288,161 @@ class AuthorizationPolicyTest extends TestCase
         $this->assertDatabaseHas('courses', ['id' => $course->id]);
     }
 
+    public function test_material_crud_is_course_scoped_and_stores_file_metadata_without_uploading(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $lecturer = User::factory()->dosen()->create();
+        $otherLecturer = User::factory()->dosen()->create();
+        $student = User::factory()->create();
+        $course = $this->createCourse($lecturer, 'MAT701');
+        $otherCourse = $this->createCourse($otherLecturer, 'MAT702');
+        $course->students()->attach($student->id, ['enrolled_at' => now()]);
+        $metadata = [
+            'title' => 'Slide pengantar',
+            'description' => 'Materi minggu pertama',
+            'type' => 'file',
+            'original_name' => 'pengantar.pdf',
+            'file_size' => 2048,
+            'mime_type' => 'application/pdf',
+        ];
+
+        $created = $this->actingAs($lecturer, 'sanctum')
+            ->postJson('/api/v1/courses/'.$course->id.'/materials', $metadata)
+            ->assertCreated()
+            ->assertJsonPath('data.original_name', 'pengantar.pdf')
+            ->assertJsonPath('data.download_available', false)
+            ->assertJsonMissingPath('data.file_path');
+        $materialId = $created->json('data.id');
+        Material::whereKey($materialId)->update(['uploaded_by' => $otherLecturer->id]);
+
+        $this->assertDatabaseHas('materials', [
+            'id' => $materialId,
+            'file_path' => null,
+            'original_name' => 'pengantar.pdf',
+            'file_size' => 2048,
+        ]);
+
+        $this->getJson('/api/v1/materials/'.$materialId)
+            ->assertOk()
+            ->assertJsonPath('data.permissions.can_update', true)
+            ->assertJsonPath('data.permissions.can_delete', true);
+
+        $this->actingAs($otherLecturer, 'sanctum')
+            ->postJson('/api/v1/courses/'.$course->id.'/materials', $metadata)
+            ->assertForbidden();
+        $this->actingAs($student, 'sanctum')
+            ->postJson('/api/v1/courses/'.$course->id.'/materials', $metadata)
+            ->assertForbidden();
+
+        $this->actingAs($lecturer, 'sanctum')
+            ->postJson('/api/v1/courses/'.$otherCourse->id.'/materials', $metadata)
+            ->assertForbidden();
+        $this->putJson('/api/v1/materials/'.$materialId, [...$metadata, 'title' => 'Metadata diperbarui'])
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Metadata diperbarui');
+
+        $this->actingAs($otherLecturer, 'sanctum')
+            ->putJson('/api/v1/materials/'.$materialId, $metadata)
+            ->assertForbidden();
+        $this->actingAs($student, 'sanctum')
+            ->deleteJson('/api/v1/materials/'.$materialId)
+            ->assertForbidden();
+
+        $this->actingAs($admin, 'sanctum')
+            ->deleteJson('/api/v1/materials/'.$materialId)
+            ->assertOk();
+
+        $adminMaterial = $this->postJson('/api/v1/courses/'.$course->id.'/materials', [
+            'title' => 'Tautan referensi',
+            'description' => 'Sumber tambahan',
+            'type' => 'link',
+            'external_url' => 'https://example.test/reference',
+        ])->assertCreated();
+        $adminMaterialId = $adminMaterial->json('data.id');
+        $this->putJson('/api/v1/materials/'.$adminMaterialId, [
+            'title' => 'Tautan diperbarui',
+            'description' => 'Sumber tambahan',
+            'type' => 'link',
+            'external_url' => 'https://example.test/reference-updated',
+        ])->assertOk()->assertJsonPath('data.title', 'Tautan diperbarui');
+        $this->deleteJson('/api/v1/materials/'.$adminMaterialId)->assertOk();
+
+        $this->actingAs($lecturer, 'sanctum')
+            ->post('/api/v1/courses/'.$course->id.'/materials', [
+                ...$metadata,
+                'file' => UploadedFile::fake()->create('upload.pdf', 2, 'application/pdf'),
+            ], ['Accept' => 'application/json'])
+            ->assertUnprocessable();
+    }
+
+    public function test_assignment_crud_is_course_scoped_and_delete_only_checks_for_grades(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $lecturer = User::factory()->dosen()->create();
+        $otherLecturer = User::factory()->dosen()->create();
+        $student = User::factory()->create();
+        $course = $this->createCourse($lecturer, 'TUG701');
+        $otherCourse = $this->createCourse($otherLecturer, 'TUG702');
+        $course->students()->attach($student->id, ['enrolled_at' => now()]);
+        $input = [
+            'course_id' => $course->id,
+            'title' => 'Tugas awal',
+            'instructions' => 'Kerjakan materi pertemuan pertama.',
+            'due_at' => now()->addWeek()->toDateTimeString(),
+            'max_score' => 100,
+            'allow_late' => false,
+            'status' => 'published',
+        ];
+        $updateInput = $input;
+        unset($updateInput['course_id']);
+
+        $created = $this->actingAs($lecturer, 'sanctum')
+            ->postJson('/api/v1/assignments', $input)
+            ->assertCreated();
+        $assignmentId = $created->json('data.id');
+
+        $this->getJson('/api/v1/assignments/'.$assignmentId)
+            ->assertOk()
+            ->assertJsonPath('data.permissions.can_update', true)
+            ->assertJsonPath('data.permissions.can_delete', true);
+
+        $this->postJson('/api/v1/assignments', [...$input, 'course_id' => $otherCourse->id])
+            ->assertForbidden();
+        $this->actingAs($student, 'sanctum')
+            ->postJson('/api/v1/assignments', $input)
+            ->assertForbidden();
+
+        $this->actingAs($lecturer, 'sanctum')
+            ->putJson('/api/v1/assignments/'.$assignmentId, [...$input, 'course_id' => $otherCourse->id])
+            ->assertUnprocessable();
+        $this->actingAs($otherLecturer, 'sanctum')
+            ->putJson('/api/v1/assignments/'.$assignmentId, $updateInput)
+            ->assertForbidden();
+
+        $this->actingAs($lecturer, 'sanctum')
+            ->putJson('/api/v1/assignments/'.$assignmentId, [...$updateInput, 'title' => 'Tugas diperbarui'])
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Tugas diperbarui');
+
+        $ungraded = $this->createAssignment($course, $lecturer, 'published');
+        $this->createSubmission($ungraded, $student);
+        $this->deleteJson('/api/v1/assignments/'.$ungraded->id)->assertNoContent();
+
+        $graded = $this->createAssignment($course, $lecturer, 'published');
+        $submission = $this->createSubmission($graded, $student);
+        $this->createGrade($submission, $lecturer);
+        $this->deleteJson('/api/v1/assignments/'.$graded->id)->assertForbidden();
+
+        $adminAssignment = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/assignments', [...$input, 'course_id' => $otherCourse->id])
+            ->assertCreated();
+        $adminAssignmentId = $adminAssignment->json('data.id');
+        $this->putJson('/api/v1/assignments/'.$adminAssignmentId, [...$updateInput, 'title' => 'Admin mengubah'])
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Admin mengubah');
+        $this->deleteJson('/api/v1/assignments/'.$adminAssignmentId)->assertNoContent();
+    }
+
     private function createCourse(User $lecturer, string $code, string $status = 'active'): Course
     {
         $course = new Course;

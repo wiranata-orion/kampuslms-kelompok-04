@@ -11,9 +11,11 @@ const cancelTo = computed(() => page.mode.value === 'edit' ? `/materials/${page.
 
 <template>
     <PageFrame :title="title" :subtitle="page.data.value?.course?.name ?? page.data.value?.course?.code" :loading="page.loading.value" :error="page.error.value">
-        <ResourceForm :fields="page.fields.value" :model="page.form" :busy="page.loading.value" :cancel-to="cancelTo" submit-label="Simpan materi" show-material-fields @submit="page.submit" @file-change="page.setFile" />
-        <p class="hint">Ukuran maksimum berkas 10 MB. Pilih jenis tautan untuk menambahkan URL eksternal.</p>
+        <ResourceForm :fields="page.fields.value" :model="page.form" :busy="page.loading.value" :cancel-to="cancelTo" submit-label="Simpan materi" show-material-fields @submit="page.submit" />
+        <p class="hint">Isi metadata berkas secara manual; berkas tidak diunggah.</p>
     </PageFrame>
 </template>
 
-<style scoped>.hint { color:#777; }</style>
+<style scoped>
+.hint { margin-top: -8px; }
+</style>
