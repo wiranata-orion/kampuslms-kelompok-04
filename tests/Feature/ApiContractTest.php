@@ -10,8 +10,8 @@ use App\Models\User;
 use App\Support\ApiResponse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -113,7 +113,8 @@ class ApiContractTest extends TestCase
             ->assertJsonPath('data.0.code', 'API101');
         $this->getJson('/api/v1/courses?scope=all&status=active')
             ->assertOk()
-            ->assertJsonPath('meta.total', 2);
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonMissing(['id' => $otherCourse->id]);
 
         $this->getJson('/api/v1/courses/'.$otherCourse->id)
             ->assertForbidden()
@@ -127,7 +128,7 @@ class ApiContractTest extends TestCase
         $course = $this->createCourse($lecturer, 'API201');
         $course->students()->attach($student->id, ['enrolled_at' => now()]);
 
-        $material = new Material();
+        $material = new Material;
         $material->course_id = $course->id;
         $material->uploaded_by = $lecturer->id;
         $material->title = 'Materi API';
@@ -166,7 +167,7 @@ class ApiContractTest extends TestCase
         $path = UploadedFile::fake()->create('slide.pdf', 10, 'application/pdf')
             ->store('materials', 'public');
 
-        $material = new Material();
+        $material = new Material;
         $material->course_id = $course->id;
         $material->uploaded_by = $lecturer->id;
         $material->title = 'Slide kuliah';
@@ -333,7 +334,9 @@ class ApiContractTest extends TestCase
         $this->patchJson('/api/v1/assignments/'.$assignmentId, ['title' => 'Tugas Revisi'])
             ->assertOk()
             ->assertJsonPath('data.title', 'Tugas Revisi');
-        $this->deleteJson('/api/v1/assignments/'.$assignmentId)->assertNoContent();
+        $this->deleteJson('/api/v1/assignments/'.$assignmentId)
+            ->assertForbidden();
+        $this->assertDatabaseHas('assignments', ['id' => $assignmentId]);
     }
 
     public function test_notifications_are_limited_to_the_authenticated_user_and_can_be_read(): void
@@ -377,7 +380,7 @@ class ApiContractTest extends TestCase
 
     private function createCourse(User $lecturer, string $code): Course
     {
-        $course = new Course();
+        $course = new Course;
         $course->code = $code;
         $course->name = 'Mata Kuliah API';
         $course->description = 'Deskripsi';
@@ -391,7 +394,7 @@ class ApiContractTest extends TestCase
 
     private function createAssignment(Course $course, User $lecturer, string $status): Assignment
     {
-        $assignment = new Assignment();
+        $assignment = new Assignment;
         $assignment->course_id = $course->id;
         $assignment->created_by = $lecturer->id;
         $assignment->title = 'Tugas '.$status;
