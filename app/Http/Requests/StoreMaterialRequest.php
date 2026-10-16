@@ -17,13 +17,25 @@ class StoreMaterialRequest extends FormRequest
             && Gate::allows('create', [Material::class, $course]);
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->hasFile('file') && $this->input('type') === 'file') {
+            $file = $this->file('file');
+            $this->merge([
+                'original_name' => $this->input('original_name') ?: $file->getClientOriginalName(),
+                'file_size' => $this->input('file_size') ?: $file->getSize(),
+                'mime_type' => $this->input('mime_type') ?: $file->getMimeType(),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
             'title' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string'],
             'type' => ['required', 'in:file,link'],
-            'file' => ['prohibited'],
+            'file' => ['nullable', 'file', 'mimes:pdf,pptx,docx,doc,ppt', 'max:20480'],
             'original_name' => ['required_if:type,file', 'nullable', 'string', 'max:255'],
             'file_size' => ['required_if:type,file', 'nullable', 'integer', 'min:0'],
             'mime_type' => ['nullable', 'string', 'max:255'],
@@ -40,7 +52,9 @@ class StoreMaterialRequest extends FormRequest
             'description.string' => 'Deskripsi materi harus berupa teks.',
             'type.required' => 'Jenis materi wajib dipilih.',
             'type.in' => 'Jenis materi tidak valid.',
-            'file.prohibited' => 'Unggah berkas materi belum tersedia; isi metadata berkas saja.',
+            'file.file' => 'Berkas materi harus berupa file yang valid.',
+            'file.mimes' => 'Format file materi harus berupa PDF, PPTX, PPT, DOC, atau DOCX.',
+            'file.max' => 'Ukuran berkas materi maksimal 20 MB.',
             'original_name.required_if' => 'Nama berkas materi wajib diisi.',
             'file_size.required_if' => 'Ukuran berkas materi wajib diisi.',
             'file_size.integer' => 'Ukuran berkas harus berupa bilangan bulat.',

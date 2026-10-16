@@ -16,7 +16,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:60,1')->group(functio
         Route::post('/check-user', [DirectResetPasswordController::class, 'checkUser'])->name('check-user');
         Route::post('/reset-password', [DirectResetPasswordController::class, 'resetPassword'])->name('reset-password');
         Route::post('/login', [AuthController::class, 'login'])
-            ->middleware('throttle:5,1')
+            ->middleware('throttle:100,1')
             ->name('login');
     });
 

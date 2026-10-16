@@ -17,10 +17,36 @@ const note = ref('');
         <section v-if="page.data.value" class="panel">
             <div class="pills"><span class="pill">{{ page.data.value.status === 'published' ? 'Terbit' : 'Draft' }}</span><span class="pill">Maks. {{ page.data.value.max_score }} poin</span><span class="pill">{{ page.data.value.allow_late ? 'Terlambat diizinkan' : 'Tanpa keterlambatan' }}</span></div>
             <h2>Instruksi</h2><p class="instructions">{{ page.data.value.instructions }}</p>
-            <div v-if="page.user.value?.role === 'mahasiswa' && page.data.value.submission" class="notice"><h2>Tugas sudah dikumpulkan</h2><RouterLink class="button" :to="`/submissions/${page.data.value.submission.id}`">Lihat pengumpulan</RouterLink></div>
+            <div v-if="page.user.value?.role === 'mahasiswa' && page.data.value.submission" class="notice">
+                <h2>Status Pengumpulan</h2>
+                <div class="submission-summary">
+                    <span class="pill" :class="{ late: page.data.value.submission.is_late }">{{ page.data.value.submission.is_late ? 'Terlambat' : 'Terkumpul Tepat Waktu' }}</span>
+                    <p>Berkas: <strong>{{ page.data.value.submission.original_name }}</strong> ({{ page.data.value.submission.file_size_formatted || (Math.ceil((page.data.value.submission.file_size ?? 0) / 1024) + ' KB') }})</p>
+                    <p>Waktu pengumpulan: {{ page.data.value.submission.submitted_at ? new Date(page.data.value.submission.submitted_at).toLocaleString('id-ID') : '—' }}</p>
+                </div>
+                <div class="actions">
+                    <button class="button button-quiet" @click="page.download(`/submissions/${page.data.value.submission.id}/download`, page.data.value.submission.original_name || 'jawaban')">Unduh Berkas Saya</button>
+                    <RouterLink class="button" :to="`/submissions/${page.data.value.submission.id}`">Lihat Detail Pengumpulan</RouterLink>
+                </div>
+
+                <details class="resubmit-box">
+                    <summary class="button button-quiet">Kumpulkan Ulang / Revisi Tugas</summary>
+                    <form class="submit-form" @submit.prevent="page.submitAssignment(file, note)">
+                        <label for="resubmission-file">Pilih Berkas Revisi (PDF, DOC, DOCX maks. 5 MB)</label>
+                        <input id="resubmission-file" type="file" accept=".pdf,.doc,.docx" required @change="file = $event.target.files?.[0] ?? null">
+                        <label for="resubmission-note">Catatan Tambahan untuk Dosen</label>
+                        <textarea id="resubmission-note" v-model="note" placeholder="Catatan atau keterangan revisi..." />
+                        <button class="button">Kirim Revisi Tugas</button>
+                    </form>
+                </details>
+            </div>
             <form v-else-if="page.user.value?.role === 'mahasiswa' && page.data.value.status === 'published'" class="submit-form" @submit.prevent="page.submitAssignment(file, note)">
-                <h2>Kumpulkan tugas</h2><label for="submission-file">Berkas (maksimum 10 MB)</label><input id="submission-file" type="file" required @change="file = $event.target.files?.[0] ?? null">
-                <label for="submission-note">Catatan untuk dosen</label><textarea id="submission-note" v-model="note" /><button class="button">Kirim pengumpulan</button>
+                <h2>Kumpulkan tugas</h2>
+                <label for="submission-file">Berkas (PDF, DOC, DOCX maks. 5 MB)</label>
+                <input id="submission-file" type="file" accept=".pdf,.doc,.docx" required @change="file = $event.target.files?.[0] ?? null">
+                <label for="submission-note">Catatan untuk dosen</label>
+                <textarea id="submission-note" v-model="note" placeholder="Tuliskan catatan untuk dosen (opsional)..." />
+                <button class="button">Kirim pengumpulan</button>
             </form>
             <h2 v-if="page.user.value?.role === 'dosen'">Pengumpulan terbaru</h2><ul v-if="page.user.value?.role === 'dosen'"><li v-for="submission in page.data.value.submissions" :key="submission.id"><RouterLink :to="`/submissions/${submission.id}`">{{ submission.student?.name ?? 'Mahasiswa' }}</RouterLink> — {{ submission.grade?.score ?? 'Belum dinilai' }}</li></ul>
             <button v-if="page.data.value.permissions?.can_delete" class="button button-danger" @click="page.remove('assignments', page.data.value)">Hapus tugas</button>
@@ -37,4 +63,9 @@ const note = ref('');
 .submit-form label { width:100%; }
 .submit-form textarea { width:100%; min-height:100px; }
 .notice { margin:24px 0; padding:18px; border-radius:12px; background:#f5f3fc; }
+.submission-summary { margin: 12px 0; display: flex; flex-direction: column; gap: 6px; }
+.submission-summary .pill.late { background:#fff0f0; color:#ae3549; }
+.resubmit-box { margin-top: 16px; padding-top: 12px; border-top: 1px dashed #d8d4e2; }
+.resubmit-box summary { cursor: pointer; list-style: none; display: inline-block; }
+.actions { display:flex; flex-wrap:wrap; gap:10px; margin:12px 0; }
 </style>

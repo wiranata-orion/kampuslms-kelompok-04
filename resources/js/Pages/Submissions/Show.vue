@@ -10,9 +10,10 @@ const page = usePageData('submission');
         <section v-if="page.data.value" class="panel">
             <span class="pill" :class="{ late: page.data.value.is_late }">{{ page.data.value.is_late ? 'Terlambat' : 'Terkumpul' }}</span>
             <p>Dikumpulkan {{ page.data.value.submitted_at ? new Date(page.data.value.submitted_at).toLocaleString('id-ID') : '—' }}</p>
-            <dl><dt>Mahasiswa</dt><dd>{{ page.data.value.student?.name ?? page.user.value?.name }}</dd><dt>File</dt><dd>{{ page.data.value.original_name }} · {{ Math.ceil((page.data.value.file_size ?? 0) / 1024) }} KB</dd><dt>Catatan</dt><dd>{{ page.data.value.note || 'Tidak ada catatan.' }}</dd><dt>Batas pengumpulan</dt><dd>{{ page.data.value.assignment?.due_at ? new Date(page.data.value.assignment.due_at).toLocaleString('id-ID') : '—' }}</dd></dl>
+            <dl><dt>Mahasiswa</dt><dd>{{ page.data.value.student?.name ?? page.user.value?.name }}</dd><dt>File</dt><dd>{{ page.data.value.original_name }} · {{ page.data.value.file_size_formatted || (Math.ceil((page.data.value.file_size ?? 0) / 1024) + ' KB') }}</dd><dt>Catatan</dt><dd>{{ page.data.value.note || 'Tidak ada catatan.' }}</dd><dt>Batas pengumpulan</dt><dd>{{ page.data.value.assignment?.due_at ? new Date(page.data.value.assignment.due_at).toLocaleString('id-ID') : '—' }}</dd></dl>
             <div class="actions">
                 <button class="button button-quiet" @click="page.download(`/submissions/${page.data.value.id}/download`, page.data.value.original_name || 'pengumpulan')">Unduh pengumpulan</button>
+                <button v-if="page.data.value.original_name?.toLowerCase().endsWith('.pdf')" class="button button-quiet" @click="page.preview(`/submissions/${page.data.value.id}/download`)">Pratinjau</button>
                 <RouterLink v-if="page.user.value?.role === 'mahasiswa'" class="button button-quiet" :to="`/submissions/${page.data.value.id}/edit`">Edit pengumpulan</RouterLink>
                 <RouterLink v-if="page.user.value?.role === 'mahasiswa'" class="button" :to="`/submissions/${page.data.value.id}/grade`">Lihat nilai</RouterLink>
                 <RouterLink v-if="page.user.value?.role === 'dosen'" class="button" :to="`/submissions/${page.data.value.id}/grade`">{{ page.data.value.grade ? 'Edit nilai' : 'Beri nilai' }}</RouterLink>

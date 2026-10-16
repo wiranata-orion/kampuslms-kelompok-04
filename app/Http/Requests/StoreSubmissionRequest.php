@@ -21,7 +21,7 @@ class StoreSubmissionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file', 'max:10240'],
+            'file' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:5120'],
             'note' => ['nullable', 'string'],
         ];
     }
@@ -44,7 +44,8 @@ class StoreSubmissionRequest extends FormRequest
         return [
             'file.required' => 'File tugas wajib diunggah.',
             'file.file' => 'Pengumpulan harus berupa file yang valid.',
-            'file.max' => 'Ukuran file tugas maksimal 10 MB.',
+            'file.mimes' => 'Format file tugas harus berupa PDF, DOC, atau DOCX.',
+            'file.max' => 'Ukuran file tugas maksimal 5 MB.',
             'note.string' => 'Catatan harus berupa teks.',
         ];
     }

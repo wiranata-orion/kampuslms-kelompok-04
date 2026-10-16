@@ -14,6 +14,7 @@ use App\Models\Submission;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 
 class AssignmentApiController extends Controller
 {
@@ -78,21 +79,34 @@ class AssignmentApiController extends Controller
     {
         $validated = $request->validated();
         $file = $request->file('file');
-        $submission = new Submission;
-        $submission->assignment_id = $assignment->id;
-        $submission->user_id = $request->user()->id;
-        $submission->file_path = $file->store('submissions', 'local');
-        $submission->original_name = $file->getClientOriginalName();
-        $submission->file_size = $file->getSize();
-        $submission->note = $validated['note'] ?? null;
-        $submission->submitted_at = now();
-        $submission->is_late = now()->greaterThan($assignment->due_at);
-        $submission->save();
+
+        $existing = Submission::where('assignment_id', $assignment->id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if ($existing && $existing->file_path && Storage::disk('local')->exists($existing->file_path)) {
+            Storage::disk('local')->delete($existing->file_path);
+        }
+
+        $submission = Submission::updateOrCreate(
+            [
+                'assignment_id' => $assignment->id,
+                'user_id' => $request->user()->id,
+            ],
+            [
+                'file_path' => $file->store("submissions/{$assignment->id}", 'local'),
+                'original_name' => $file->getClientOriginalName(),
+                'file_size' => $file->getSize(),
+                'note' => $validated['note'] ?? null,
+                'submitted_at' => now(),
+                'is_late' => now()->greaterThan($assignment->due_at),
+            ]
+        );
 
         $submission->load(['student', 'grade.grader']);
 
         return (new SubmissionResource($submission))
-            ->response()->setStatusCode(201);
+            ->response()->setStatusCode($submission->wasRecentlyCreated ? 201 : 200);
     }
 
     private function applyAssignmentInput(Assignment $assignment, array $validated): void
