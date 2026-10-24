@@ -10,7 +10,7 @@ const page = usePageData('material');
         <section v-if="page.data.value" class="panel">
             <span class="pill">{{ page.data.value.type === 'file' ? 'File pembelajaran' : 'Tautan eksternal' }}</span>
             <p class="description">{{ page.data.value.description || 'Tidak ada deskripsi tambahan.' }}</p>
-            <dl v-if="page.data.value.type === 'file'" class="file-metadata"><div><dt>Nama berkas</dt><dd>{{ page.data.value.original_name || 'Belum diisi' }}</dd></div><div><dt>Ukuran</dt><dd>{{ page.data.value.file_size ? `${Number(page.data.value.file_size).toLocaleString('id-ID')} byte` : 'Belum diisi' }}</dd></div><div><dt>Tipe konten</dt><dd>{{ page.data.value.mime_type || 'Belum diisi' }}</dd></div></dl>
+            <dl v-if="page.data.value.type === 'file'" class="file-metadata"><div><dt>Nama berkas</dt><dd>{{ page.data.value.original_name || 'Belum diisi' }}</dd></div><div><dt>Ukuran</dt><dd>{{ page.data.value.file_size_formatted || (page.data.value.file_size ? `${Number(page.data.value.file_size).toLocaleString('id-ID')} byte` : 'Belum diisi') }}</dd></div><div><dt>Tipe konten</dt><dd>{{ page.data.value.mime_type || 'Belum diisi' }}</dd></div></dl>
             <div class="actions">
                 <button v-if="page.data.value.download_available" class="button" @click="page.download(`/materials/${page.data.value.id}/download`, page.data.value.original_name || 'materi')">Unduh {{ page.data.value.original_name || 'file materi' }}</button>
                 <a v-else-if="page.data.value.external_url" class="button" :href="page.data.value.external_url" target="_blank" rel="noopener noreferrer">Buka tautan materi</a>

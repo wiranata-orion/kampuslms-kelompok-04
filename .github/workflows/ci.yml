@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, perbaikan-uts]
+    branches: [main, dev, perbaikan-uts, 'feat/**', 'fitur/**', 'fix/**']
   pull_request:
-    branches: [main, perbaikan-uts]
+    branches: [main, dev, perbaikan-uts]
 
 jobs:
   laravel:

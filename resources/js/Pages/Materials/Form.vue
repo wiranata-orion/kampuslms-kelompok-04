@@ -11,11 +11,15 @@ const cancelTo = computed(() => page.mode.value === 'edit' ? `/materials/${page.
 
 <template>
     <PageFrame :title="title" :subtitle="page.data.value?.course?.name ?? page.data.value?.course?.code" :loading="page.loading.value" :error="page.error.value">
-        <ResourceForm :fields="page.fields.value" :model="page.form" :field-errors="page.fieldErrors" :busy="page.loading.value" :cancel-to="cancelTo" submit-label="Simpan materi" show-material-fields @submit="page.submit" />
-        <p class="hint">Isi metadata berkas secara manual; berkas tidak diunggah.</p>
+        <ResourceForm :fields="page.fields.value" :model="page.form" :field-errors="page.fieldErrors" :busy="page.loading.value" :cancel-to="cancelTo" submit-label="Simpan materi" show-material-fields @submit="page.submit" @file-change="page.setFile" />
+        <p v-if="page.mode.value === 'edit' && page.data.value?.type === 'file' && page.data.value?.download_available" class="hint current-file">
+            Berkas saat ini: <strong>{{ page.data.value.original_name }}</strong>. Biarkan pilihan file kosong untuk tetap menggunakan berkas ini.
+        </p>
+        <p class="hint">Berkas yang didukung: PDF, PPTX, PPT, DOC, DOCX (Maksimal 20 MB). Atau pilih opsi Tautan untuk memasukkan URL eksternal.</p>
     </PageFrame>
 </template>
 
 <style scoped>
 .hint { margin-top: -8px; }
+.current-file { margin-top: 0; }
 </style>

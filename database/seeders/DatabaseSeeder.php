@@ -88,27 +88,42 @@ class DatabaseSeeder extends Seeder
                 foreach ($enrolledStudents as $student) {
                     // Buat submission untuk sebagian besar mahasiswa
                     if (rand(1, 10) <= 8) {
-                        Submission::factory()->create([
-                            'assignment_id' => $assignment->id,
-                            'user_id' => $student->id,
-                            'submitted_at' => $assignment->due_at->subHours(rand(1, 48)),
-                        ]);
+                        Submission::firstOrCreate(
+                            [
+                                'assignment_id' => $assignment->id,
+                                'user_id' => $student->id,
+                            ],
+                            [
+                                'file_path' => 'submissions/' . fake()->uuid() . '.pdf',
+                                'original_name' => 'Tugas_' . ($student->nim ?? 'mahasiswa') . '.pdf',
+                                'file_size' => rand(200000, 2000000),
+                                'submitted_at' => $assignment->due_at->subHours(rand(1, 48)),
+                                'is_late' => false,
+                            ]
+                        );
                     }
                 }
             }
         }
 
-        // 7. Penilaian Submissions (>= 100 submission, ~60% dinilai)
-        $submissions = Submission::with('assignment.course')->get();
-        $targetGradedCount = (int) ($submissions->count() * 0.6);
+        // 7. Penilaian Submissions (hanya submission yang belum dinilai)
+        $submissions = Submission::whereDoesntHave('grade')->with('assignment.course')->get();
+        if ($submissions->isNotEmpty()) {
+            $targetGradedCount = (int) ($submissions->count() * 0.6);
+            $submissionsToGrade = $submissions->random(min($targetGradedCount, $submissions->count()));
 
-        $submissionsToGrade = $submissions->random(min($targetGradedCount, $submissions->count()));
-
-        foreach ($submissionsToGrade as $submission) {
-            Grade::factory()->create([
-                'submission_id' => $submission->id,
-                'graded_by' => $submission->assignment->course->lecturer_id,
-            ]);
+            foreach ($submissionsToGrade as $submission) {
+                Grade::firstOrCreate(
+                    ['submission_id' => $submission->id],
+                    [
+                        'graded_by' => $submission->assignment->course->lecturer_id,
+                        'score' => rand(70, 95),
+                        'feedback' => 'Tugas telah dinilai dan memenuhi standar.',
+                        'graded_at' => now(),
+                        'published_at' => now(),
+                    ]
+                );
+            }
         }
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+
 class DirectResetPasswordController extends Controller
 {
     public function checkUser(Request $request)
@@ -17,23 +18,23 @@ class DirectResetPasswordController extends Controller
             ->orWhere('nim_nip', $validated['identifier'])
             ->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => false,
-                'message' => 'NIM atau Email tidak ditemukan.'
+                'message' => 'NIM atau Email tidak ditemukan.',
             ], 422);
         }
 
         if ($user->role === 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => 'Akun admin tidak dapat mengganti kata sandi melalui fitur ini.'
+                'message' => 'Akun admin tidak dapat mengganti kata sandi melalui fitur ini.',
             ], 403);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Pengguna ditemukan.'
+            'message' => 'Pengguna ditemukan.',
         ], 200);
     }
 
@@ -48,17 +49,17 @@ class DirectResetPasswordController extends Controller
             ->orWhere('nim_nip', $validated['identifier'])
             ->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => false,
-                'message' => 'Pengguna tidak ditemukan.'
+                'message' => 'Pengguna tidak ditemukan.',
             ], 404);
         }
 
         if ($user->role === 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => 'Akun admin tidak dapat mengganti kata sandi melalui fitur ini.'
+                'message' => 'Akun admin tidak dapat mengganti kata sandi melalui fitur ini.',
             ], 403);
         }
 
@@ -68,7 +69,7 @@ class DirectResetPasswordController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Kata sandi berhasil diperbarui.'
+            'message' => 'Kata sandi berhasil diperbarui.',
         ], 200);
     }
 }

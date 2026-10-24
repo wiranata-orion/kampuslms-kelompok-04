@@ -3,15 +3,20 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreGradeRequest;
+use App\Http\Requests\UpdateGradeRequest;
+use App\Http\Requests\UpdateSubmissionRequest;
 use App\Http\Resources\GradeResource;
 use App\Http\Resources\SubmissionResource;
 use App\Models\Grade;
 use App\Models\Submission;
+use App\Models\SubmissionAccessLog;
 use App\Support\ApiResponse;
+use App\Support\PrivateFiles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SubmissionController extends Controller
 {
@@ -45,18 +50,31 @@ class SubmissionController extends Controller
         return new SubmissionResource($grade->submission);
     }
 
-    public function updateMine(Request $request, Submission $submission): never
-    {
-        Gate::authorize('update', $submission);
-        abort(403);
-    }
-
     public function download(Request $request, Submission $submission)
     {
-        $submission->load('assignment.course');
-        Gate::authorize('view', $submission);
+        $submission->loadMissing('assignment.course');
+        Gate::authorize('download', $submission);
 
-        return Storage::disk('local')->download($submission->file_path, $submission->original_name);
+        abort_unless(filled($submission->file_path), 404, 'Berkas submission tidak tersedia.');
+
+        $preview = $request->boolean('preview') && PrivateFiles::canPreview($submission->file_path);
+
+        // Dibuat dulu: abort 404 terjadi di sini, sebelum audit dicatat.
+        $response = PrivateFiles::response($submission->file_path, $submission->original_name, $preview);
+
+        // Audit: akses oleh selain pemilik (dosen pengampu atau admin).
+        if ($request->user()->id !== $submission->user_id) {
+            SubmissionAccessLog::create([
+                'submission_id' => $submission->id,
+                'user_id' => $request->user()->id,
+                'action' => $preview ? 'preview' : 'download',
+                'original_name' => $submission->original_name,
+                'ip_address' => $request->ip(),
+                'user_agent' => Str::limit((string) $request->userAgent(), 250, ''),
+            ]);
+        }
+
+        return $response;
     }
 
     public function studentGrade(Request $request, Submission $submission): GradeResource
@@ -68,16 +86,12 @@ class SubmissionController extends Controller
         return new GradeResource($submission->grade);
     }
 
-    public function grade(Request $request, Submission $submission): JsonResponse
+    public function grade(StoreGradeRequest $request, Submission $submission): JsonResponse
     {
         $submission->load(['assignment.course', 'grade']);
         $grade = $submission->grade;
-        Gate::authorize($grade ? 'update' : 'create', $grade ?? [Grade::class, $submission]);
 
-        $validated = $request->validate([
-            'score' => ['required', 'numeric', 'min:0', 'max:'.$submission->assignment->max_score],
-            'feedback' => ['nullable', 'string'],
-        ]);
+        $validated = $request->validated();
 
         $grade ??= new Grade(['submission_id' => $submission->id]);
         $grade->graded_by = $request->user()->id;
@@ -100,5 +114,20 @@ class SubmissionController extends Controller
         $grade->save();
 
         return new GradeResource($grade->load('grader'));
+    }
+
+    public function updateGrade(UpdateGradeRequest $request, Grade $grade): JsonResponse
+    {
+        $grade->load(['submission.assignment.course']);
+        Gate::authorize('update', $grade);
+
+        $validated = $request->validated();
+        $grade->score = $validated['score'];
+        $grade->feedback = $validated['feedback'] ?? null;
+        $grade->graded_by = $request->user()->id;
+        $grade->graded_at = now();
+        $grade->save();
+
+        return (new GradeResource($grade->load('grader')))->response();
     }
 }

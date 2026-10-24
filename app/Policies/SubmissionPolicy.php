@@ -20,10 +20,17 @@ class SubmissionPolicy
 
     public function view(User $user, Submission $submission): bool
     {
+        $submission->loadMissing('assignment.course');
+
         return $user->role === 'admin'
             || ($user->role === 'dosen'
                 && $submission->assignment->course->lecturer_id === $user->id)
             || ($user->role === 'mahasiswa' && $submission->user_id === $user->id);
+    }
+
+    public function download(User $user, Submission $submission): bool
+    {
+        return $this->view($user, $submission);
     }
 
     public function create(User $user, Assignment $assignment): bool
@@ -31,17 +38,25 @@ class SubmissionPolicy
         return $user->role === 'mahasiswa'
             && $assignment->status === 'published'
             && $assignment->course->status === 'active'
-            && $assignment->course->students()->whereKey($user->id)->exists()
-            && ! $assignment->submissions()->where('user_id', $user->id)->exists();
+            && $assignment->course->students()->whereKey($user->id)->exists();
     }
 
     public function update(User $user, Submission $submission): bool
     {
-        return false;
+        $submission->loadMissing('assignment.course');
+
+        return $user->role === 'mahasiswa'
+            && $submission->user_id === $user->id
+            && $submission->assignment->status === 'published'
+            && $submission->assignment->course->status === 'active'
+            && $submission->assignment->course->students()->whereKey($user->id)->exists()
+            && ! $submission->grade()->exists();
     }
 
     public function delete(User $user, Submission $submission): bool
     {
+        $submission->loadMissing('assignment.course');
+
         return $user->role === 'admin'
             || ($user->role === 'dosen'
                 && $submission->assignment->course->lecturer_id === $user->id);

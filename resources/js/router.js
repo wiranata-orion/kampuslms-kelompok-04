@@ -25,6 +25,7 @@ import SubmissionIndex from './Pages/Submissions/Index.vue';
 import SubmissionShow from './Pages/Submissions/Show.vue';
 import SubmissionForm from './Pages/Submissions/Form.vue';
 import GradeShow from './Pages/Grades/Show.vue';
+import Settings from './Pages/Settings/Index.vue';
 import Forbidden from './Pages/Errors/Forbidden.vue';
 import NotFound from './Pages/Errors/NotFound.vue';
 
@@ -39,6 +40,7 @@ const router = createRouter({
         { path: '/forgot-password', name: 'forgot-password', component: ForgotPassword, meta: { public: true } },
         { path: '/', redirect: '/dashboard' },
         { path: '/dashboard', name: 'dashboard', component: Dashboard },
+        { path: '/settings', alias: ['/profile', '/pengaturan'], name: 'settings', component: Settings },
         { path: '/my/courses', alias: ['/dosen/courses', '/mahasiswa/courses'], name: 'my-courses', component: MyCourses },
         { path: '/courses', alias: '/admin/courses', name: 'courses', component: CourseIndex },
         { path: '/courses/create', alias: '/admin/courses/create', name: 'course-create', component: CourseForm, meta: { mode: 'create' } },

@@ -10,7 +10,7 @@ class DemoAccountSeeder extends Seeder
 {
     public function run(): void
     {
-        $password_hash = Hash::make(env('DEMO_ACCOUNT_PASSWORD', 'test1234'));
+        $password_hash = Hash::make(env('DEMO_ACCOUNT_PASSWORD', 'password'));
 
         // 1. Akun Demo Admin
         User::updateOrCreate(
