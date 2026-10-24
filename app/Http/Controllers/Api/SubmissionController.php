@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreGradeRequest;
 use App\Http\Resources\GradeResource;
 use App\Http\Resources\SubmissionResource;
 use App\Models\Grade;
@@ -68,22 +69,20 @@ class SubmissionController extends Controller
         return new GradeResource($submission->grade);
     }
 
-    public function grade(Request $request, Submission $submission): JsonResponse
+    public function grade(StoreGradeRequest $request, Submission $submission): JsonResponse
     {
         $submission->load(['assignment.course', 'grade']);
-        $grade = $submission->grade;
-        Gate::authorize($grade ? 'update' : 'create', $grade ?? [Grade::class, $submission]);
 
-        $validated = $request->validate([
-            'score' => ['required', 'numeric', 'min:0', 'max:'.$submission->assignment->max_score],
-            'feedback' => ['nullable', 'string'],
-        ]);
-
-        $grade ??= new Grade(['submission_id' => $submission->id]);
-        $grade->graded_by = $request->user()->id;
-        $grade->score = $validated['score'];
-        $grade->feedback = $validated['feedback'] ?? null;
-        $grade->graded_at = now();
+        $validated = $request->validated();
+        $grade = Grade::updateOrCreate(
+            ['submission_id' => $submission->id],
+            [
+                'graded_by' => $request->user()->id,
+                'score' => $validated['score'],
+                'feedback' => $validated['feedback'] ?? null,
+                'graded_at' => now(),
+            ],
+        );
         $grade->published_at = null;
         $grade->save();
 
