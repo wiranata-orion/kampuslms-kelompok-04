@@ -43,7 +43,7 @@
 
 2. Endpoint `GET /api/v1/courses`
 
-   Endpoint sudah didaftarkan di `routes/api.php` pada grup prefix `v1` dan middleware `auth:sanctum`. Route ini memanggil `CourseApiController@index`. Jika pengguna sudah terautentikasi, endpoint mengembalikan daftar course dalam JSON: admin melihat semua course, dosen melihat course yang diampu, dan mahasiswa melihat course yang diikutinya. Respons dipaginasi 15 data per halaman dan menyertakan informasi dosen serta jumlah materi dan tugas. Permintaan tanpa autentikasi ditolak dengan `401`.
+   Endpoint sudah didaftarkan di `routes/api.php` pada grup prefix `v1` dan middleware `auth:sanctum`. Route ini memanggil `CourseController@index`. Jika pengguna sudah terautentikasi, endpoint mengembalikan daftar course dalam JSON: admin melihat semua course, dosen melihat course yang diampu, dan mahasiswa melihat course yang diikutinya. Respons dipaginasi 15 data per halaman dan menyertakan informasi dosen serta jumlah materi dan tugas. Permintaan tanpa autentikasi ditolak dengan `401`.
 
 3. Perbandingan dengan `CourseController` versi web
 
@@ -53,7 +53,7 @@
    - Keduanya hanya dapat digunakan setelah pengguna login.
 
    **Berbeda:**
-   - `CourseController@index` menampilkan halaman Blade `courses.index`; `CourseApiController@index` mengembalikan JSON dengan resource dan metadata pagination.
+   - `CourseController@index` menampilkan halaman Blade `courses.index`; `CourseController@index` mengembalikan JSON dengan resource dan metadata pagination.
    - Versi web menampilkan katalog untuk pengguna yang login dan mendukung filter `search` dan `status`. Versi API membatasi data berdasarkan peran: admin melihat semua, dosen hanya course yang diampu, dan mahasiswa hanya course yang diikuti.
    - Versi API menyertakan jumlah materi dan tugas; versi web memuat data dosen untuk tampilan.
    - Dengan demikian, endpoint API bukan sekadar versi JSON dari daftar web: aturan cakupan data keduanya berbeda.

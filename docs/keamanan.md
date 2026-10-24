@@ -81,7 +81,7 @@ sedangkan record yang ada tetapi bukan hak pemanggil menghasilkan `403`.
 
 | Endpoint / target ID | Risiko lintas pengguna/peran | Policy atau query yang menutupnya |
 |---|---|---|
-| `GET /courses`, `GET /my/courses` | Mengirim `scope=all` untuk membaca katalog course lain | `CoursePolicy::viewAny`; `CourseApiController::index` membatasi query ke course admin, `taughtCourses`, atau `courses` aktif mahasiswa |
+| `GET /courses`, `GET /my/courses` | Mengirim `scope=all` untuk membaca katalog course lain | `CoursePolicy::viewAny`; `CourseController::index` membatasi query ke course admin, `taughtCourses`, atau `courses` aktif mahasiswa |
 | `GET /courses/{course}` | Mengganti ID untuk membaca course lain | `CoursePolicy::view` memeriksa admin, `lecturer_id`, atau enrollment `exists()` serta status course mahasiswa |
 | `POST/PUT/DELETE /courses[/{course}]` | Membuat atau mengubah course / menghapus course berisi data | `CoursePolicy::create/update/delete`; delete memakai `students()->exists()`, `materials()->exists()`, dan `assignments()->exists()` |
 | `GET /courses/{course}/materials` | Mengganti ID course untuk membaca materi course lain | `MaterialPolicy::viewAny` terhadap course induk |
