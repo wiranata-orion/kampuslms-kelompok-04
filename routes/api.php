@@ -101,7 +101,6 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:60,1')->group(functio
         // Submissions & Grades
         Route::get('/my/submissions', [SubmissionController::class, 'mine'])->name('submissions.mine');
         Route::get('/submissions/{submission}', [SubmissionController::class, 'show'])->name('submissions.show');
-        Route::put('/submissions/{submission}', [SubmissionController::class, 'updateMine'])->name('submissions.update');
         Route::get('/submissions/{submission}/download', [SubmissionController::class, 'download'])->name('submissions.download');
         Route::get('/submissions/{submission}/grade', [SubmissionController::class, 'studentGrade'])->name('submissions.student-grade');
         Route::get('/grades/{grade}', [SubmissionController::class, 'showGrade'])->name('grades.show');

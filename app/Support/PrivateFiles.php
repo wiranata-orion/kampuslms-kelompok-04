@@ -29,9 +29,6 @@ final class PrivateFiles
     public static function response(string $path, ?string $name = null, bool $preview = false): StreamedResponse
     {
         $disk = Storage::disk(self::DISK);
-        if (! ($path !== '' && $disk->exists($path)) && Storage::disk('public')->exists($path)) {
-            $disk = Storage::disk('public');
-        }
 
         abort_unless($path !== '' && $disk->exists($path), 404, 'Berkas tidak ditemukan.');
 

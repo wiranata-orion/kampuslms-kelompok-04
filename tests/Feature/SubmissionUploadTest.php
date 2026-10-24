@@ -291,13 +291,6 @@ class SubmissionUploadTest extends TestCase
             ], ['Accept' => 'application/json'])
             ->assertForbidden();
 
-        // 4. Mahasiswa mencoba mengupdate melalui PUT /submissions/{id} -> DITOLAK (403 Forbidden)
-        $this->actingAs($student, 'sanctum')
-            ->putJson("/api/v1/submissions/{$submission->id}", [
-                'note' => 'Catatan diubah',
-            ])
-            ->assertForbidden();
-
         // 5. Pastikan berkas lama tidak terhapus atau tertimpa
         Storage::disk('local')->assertExists($originalFilePath);
         $this->assertEquals('jawaban_awal.pdf', $submission->fresh()->original_name);

@@ -163,9 +163,6 @@ class AuthorizationPolicyTest extends TestCase
         ], ['Accept' => 'application/json'])
             ->assertOk()
             ->assertJsonPath('data.original_name', 'replacement.pdf');
-        $this->putJson('/api/v1/submissions/'.$submissionId, ['note' => 'Revisi'])
-            ->assertForbidden();
-
         $this->actingAs($otherStudent, 'sanctum')
             ->getJson('/api/v1/submissions/'.$submissionId)
             ->assertForbidden();

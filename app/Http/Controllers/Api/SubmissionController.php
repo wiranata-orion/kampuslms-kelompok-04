@@ -50,12 +50,6 @@ class SubmissionController extends Controller
         return new SubmissionResource($grade->submission);
     }
 
-    public function updateMine(UpdateSubmissionRequest $request, Submission $submission): never
-    {
-        Gate::authorize('update', $submission);
-        abort(403);
-    }
-
     public function download(Request $request, Submission $submission)
     {
         $submission->loadMissing('assignment.course');
