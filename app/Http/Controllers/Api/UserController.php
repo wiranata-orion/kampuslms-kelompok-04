@@ -12,7 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
-class UserApiController extends Controller
+class UserController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
@@ -21,10 +21,10 @@ class UserApiController extends Controller
         $query = User::query()
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->query('search'));
-                $query->where(fn ($q) => $q->where('name', 'like', "%{$search}%")
+                $query->where(fn($q) => $q->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%"));
             })
-            ->when($request->filled('role'), fn ($query) => $query->where('role', $request->query('role')))
+            ->when($request->filled('role'), fn($query) => $query->where('role', $request->query('role')))
             ->orderBy('name');
 
         return ApiResponse::collection($query->paginate(15), UserResource::class, $request);
@@ -51,7 +51,7 @@ class UserApiController extends Controller
     {
         $validated = $request->validated();
 
-        $user->fill(collect($validated)->reject(fn ($value, $key) => $key === 'password' && ! $value)->all());
+        $user->fill(collect($validated)->reject(fn($value, $key) => $key === 'password' && ! $value)->all());
         $user->save();
 
         return response()->json([

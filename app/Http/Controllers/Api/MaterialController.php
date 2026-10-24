@@ -13,7 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
-class MaterialApiController extends Controller
+class MaterialController extends Controller
 {
     public function store(StoreMaterialRequest $request, Course $course): JsonResponse
     {

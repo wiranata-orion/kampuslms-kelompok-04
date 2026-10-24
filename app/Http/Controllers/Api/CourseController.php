@@ -16,7 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
-class CourseApiController extends Controller
+class CourseController extends Controller
 {
     public function index(Request $request)
     {
@@ -35,10 +35,10 @@ class CourseApiController extends Controller
         };
 
         $courses = $courses
-            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->query('status')))
+            ->when($request->filled('status'), fn($query) => $query->where('status', $request->query('status')))
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->query('search'));
-                $query->where(fn ($q) => $q->where('code', 'like', "%{$search}%")
+                $query->where(fn($q) => $q->where('code', 'like', "%{$search}%")
                     ->orWhere('name', 'like', "%{$search}%"));
             })
             ->with('lecturer')
@@ -123,8 +123,8 @@ class CourseApiController extends Controller
         $assignments = $course->assignments()
             ->with('course')
             ->withCount('grades')
-            ->when($request->user()->role === 'mahasiswa', fn ($query) => $query->where('status', 'published'))
-            ->when(isset($validated['status']), fn ($query) => $query->where('status', $validated['status']))
+            ->when($request->user()->role === 'mahasiswa', fn($query) => $query->where('status', 'published'))
+            ->when(isset($validated['status']), fn($query) => $query->where('status', $validated['status']))
             ->orderByDesc('due_at')
             ->paginate(15);
 

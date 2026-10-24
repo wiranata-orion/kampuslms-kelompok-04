@@ -16,7 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 
-class AssignmentApiController extends Controller
+class AssignmentController extends Controller
 {
     public function show(Request $request, Assignment $assignment): AssignmentResource
     {

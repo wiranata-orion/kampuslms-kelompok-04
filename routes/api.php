@@ -1,15 +1,15 @@
 <?php
 
-use App\Http\Controllers\Api\AssignmentApiController;
+use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\CourseApiController;
+use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\CourseEnrollmentController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DirectResetPasswordController;
-use App\Http\Controllers\Api\MaterialApiController;
+use App\Http\Controllers\Api\MaterialController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SubmissionController;
-use App\Http\Controllers\Api\UserApiController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->middleware('throttle:60,1')->group(function () {
@@ -28,7 +28,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:60,1')->group(functio
         // Auth & Self-management
         Route::post('/auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
         Route::get('/me', [AuthController::class, 'me'])->name('me');
-        Route::patch('/me', [UserApiController::class, 'updateCurrentUser'])->name('me.update');
+        Route::patch('/me', [UserController::class, 'updateCurrentUser'])->name('me.update');
         Route::post('/auth/change-password', [AuthController::class, 'changePassword'])->name('auth.change-password');
 
         // Dashboard
@@ -43,19 +43,19 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:60,1')->group(functio
 
         // ── Grup Rute: Admin ─────────────────────────────────────────────────
         Route::middleware('role:admin')->group(function () {
-            Route::get('/users', [UserApiController::class, 'index'])->name('users.index');
-            Route::post('/users', [UserApiController::class, 'store'])->name('users.store');
-            Route::delete('/users/{user}', [UserApiController::class, 'destroy'])->name('users.destroy');
-            Route::get('/lecturers', [UserApiController::class, 'lecturers'])->name('lecturers.index');
+            Route::get('/users', [UserController::class, 'index'])->name('users.index');
+            Route::post('/users', [UserController::class, 'store'])->name('users.store');
+            Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+            Route::get('/lecturers', [UserController::class, 'lecturers'])->name('lecturers.index');
 
-            Route::post('/courses', [CourseApiController::class, 'store'])->name('courses.store');
-            Route::put('/courses/{course}', [CourseApiController::class, 'update'])->name('courses.update');
-            Route::delete('/courses/{course}', [CourseApiController::class, 'destroy'])->name('courses.destroy');
+            Route::post('/courses', [CourseController::class, 'store'])->name('courses.store');
+            Route::put('/courses/{course}', [CourseController::class, 'update'])->name('courses.update');
+            Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
         });
 
         // User profile & edit (Admin + Diri sendiri via Policy)
-        Route::get('/users/{user}', [UserApiController::class, 'show'])->name('users.show');
-        Route::put('/users/{user}', [UserApiController::class, 'update'])->name('users.update');
+        Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
 
         // ── Grup Rute: Dosen & Admin (Penilaian) ──────────────────────────────
         Route::middleware('role:dosen,admin')->group(function () {
@@ -65,9 +65,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:60,1')->group(functio
         });
 
         // ── Course & Scoped Resources (Nested + scopeBindings) ───────────────
-        Route::get('/my/courses', [CourseApiController::class, 'index'])->defaults('scope', 'my')->name('my.courses');
-        Route::get('/courses', [CourseApiController::class, 'index'])->name('courses.index');
-        Route::get('/courses/{course}', [CourseApiController::class, 'show'])->name('courses.show');
+        Route::get('/my/courses', [CourseController::class, 'index'])->defaults('scope', 'my')->name('my.courses');
+        Route::get('/courses', [CourseController::class, 'index'])->name('courses.index');
+        Route::get('/courses/{course}', [CourseController::class, 'show'])->name('courses.show');
 
         Route::scopeBindings()->group(function () {
             // Enrollment management (admin & course lecturer via policy)
@@ -77,26 +77,26 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:60,1')->group(functio
             Route::delete('/courses/{course}/enrollments/{user}', [CourseEnrollmentController::class, 'destroy'])->name('courses.enrollments.destroy');
 
             // Course materials & assignments list
-            Route::get('/courses/{course}/materials', [CourseApiController::class, 'materials'])->name('courses.materials');
-            Route::post('/courses/{course}/materials', [MaterialApiController::class, 'store'])->name('materials.store');
-            Route::get('/courses/{course}/assignments', [CourseApiController::class, 'assignments'])->name('courses.assignments');
+            Route::get('/courses/{course}/materials', [CourseController::class, 'materials'])->name('courses.materials');
+            Route::post('/courses/{course}/materials', [MaterialController::class, 'store'])->name('materials.store');
+            Route::get('/courses/{course}/assignments', [CourseController::class, 'assignments'])->name('courses.assignments');
 
             // Submissions nested under assignments
-            Route::get('/assignments/{assignment}/submissions', [AssignmentApiController::class, 'submissions'])->name('assignments.submissions');
-            Route::post('/assignments/{assignment}/submissions', [AssignmentApiController::class, 'submit'])->name('assignments.submit');
+            Route::get('/assignments/{assignment}/submissions', [AssignmentController::class, 'submissions'])->name('assignments.submissions');
+            Route::post('/assignments/{assignment}/submissions', [AssignmentController::class, 'submit'])->name('assignments.submit');
         });
 
         // Materials shallow routes
-        Route::get('/materials/{material}', [MaterialApiController::class, 'show'])->name('materials.show');
-        Route::get('/materials/{material}/download', [MaterialApiController::class, 'download'])->name('materials.download');
-        Route::put('/materials/{material}', [MaterialApiController::class, 'update'])->name('materials.update');
-        Route::delete('/materials/{material}', [MaterialApiController::class, 'destroy'])->name('materials.destroy');
+        Route::get('/materials/{material}', [MaterialController::class, 'show'])->name('materials.show');
+        Route::get('/materials/{material}/download', [MaterialController::class, 'download'])->name('materials.download');
+        Route::put('/materials/{material}', [MaterialController::class, 'update'])->name('materials.update');
+        Route::delete('/materials/{material}', [MaterialController::class, 'destroy'])->name('materials.destroy');
 
         // Assignments shallow routes
-        Route::post('/assignments', [AssignmentApiController::class, 'store'])->name('assignments.store');
-        Route::match(['put', 'patch'], '/assignments/{assignment}', [AssignmentApiController::class, 'update'])->name('assignments.update');
-        Route::get('/assignments/{assignment}', [AssignmentApiController::class, 'show'])->name('assignments.show');
-        Route::delete('/assignments/{assignment}', [AssignmentApiController::class, 'destroy'])->name('assignments.destroy');
+        Route::post('/assignments', [AssignmentController::class, 'store'])->name('assignments.store');
+        Route::match(['put', 'patch'], '/assignments/{assignment}', [AssignmentController::class, 'update'])->name('assignments.update');
+        Route::get('/assignments/{assignment}', [AssignmentController::class, 'show'])->name('assignments.show');
+        Route::delete('/assignments/{assignment}', [AssignmentController::class, 'destroy'])->name('assignments.destroy');
 
         // Submissions & Grades
         Route::get('/my/submissions', [SubmissionController::class, 'mine'])->name('submissions.mine');
