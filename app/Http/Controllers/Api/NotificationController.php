@@ -6,85 +6,30 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\NotificationResource;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
-use Illuminate\Notifications\DatabaseNotification;
 
 class NotificationController extends Controller
 {
-    /**
-     * Tampilkan seluruh riwayat notifikasi user melalui auth()->user()->notifications.
-     */
-    public function index(Request $request)
-    {
-        $notifications = auth()->user()->notifications()->latest()->paginate($request->integer('per_page', 15));
+	public function index(Request $request)
+	{
+		$notifications = $request->user()->notifications()->latest()->paginate(15);
 
-        return ApiResponse::collection($notifications, NotificationResource::class, $request);
-    }
+		return ApiResponse::collection($notifications, NotificationResource::class, $request);
+	}
 
-    /**
-     * Ambil jumlah pesan belum dibaca via auth()->user()->unreadNotifications->count().
-     */
-    public function unreadCount(Request $request)
-    {
-        return response()->json([
-            'data' => [
-                'count' => auth()->user()->unreadNotifications->count(),
-                'unread_count' => auth()->user()->unreadNotifications->count(),
-            ],
-        ]);
-    }
+	public function read(Request $request, string $id)
+	{
+		$notification = $request->user()->notifications()->whereKey($id)->firstOrFail();
+		$notification->markAsRead();
 
-    /**
-     * Ambil detail satu notifikasi dengan validasi kepemilikan.
-     */
-    public function show(Request $request, string $id)
-    {
-        $notification = DatabaseNotification::findOrFail($id);
+		return response()->json([
+			'data' => (new NotificationResource($notification))->resolve($request),
+		]);
+	}
 
-        // Validasi kepemilikan: ID penerima harus cocok dengan ID user yang sedang login
-        abort_if(
-            (string) $notification->notifiable_id !== (string) auth()->id(),
-            403,
-            'Anda tidak memiliki akses ke notifikasi ini.'
-        );
+	public function readAll(Request $request)
+	{
+		$request->user()->unreadNotifications()->update(['read_at' => now()]);
 
-        return response()->json([
-            'data' => (new NotificationResource($notification))->resolve($request),
-        ]);
-    }
-
-    /**
-     * Tandai notifikasi sebagai sudah dibaca menggunakan method markAsRead().
-     */
-    public function read(Request $request, string $id)
-    {
-        $notification = DatabaseNotification::findOrFail($id);
-
-        // Validasi kepemilikan: ID penerima harus cocok dengan ID user yang sedang login
-        abort_if(
-            (string) $notification->notifiable_id !== (string) auth()->id(),
-            403,
-            'Anda tidak memiliki akses ke notifikasi ini.'
-        );
-
-        $notification->markAsRead();
-
-        return response()->json([
-            'data' => (new NotificationResource($notification))->resolve($request),
-        ]);
-    }
-
-    /**
-     * Tandai seluruh notifikasi belum dibaca milik user sebagai sudah dibaca.
-     */
-    public function readAll(Request $request)
-    {
-        auth()->user()->unreadNotifications->markAsRead();
-
-        return response()->json([
-            'data' => [
-                'message' => 'Semua notifikasi telah ditandai dibaca.',
-            ],
-        ]);
-    }
+		return response()->json(['data' => ['message' => 'Semua notifikasi telah ditandai dibaca.']]);
+	}
 }
-
