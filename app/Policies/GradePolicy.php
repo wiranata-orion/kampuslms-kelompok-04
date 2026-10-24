@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\Course;
 use App\Models\Grade;
 use App\Models\Submission;
 use App\Models\User;
@@ -11,6 +12,17 @@ class GradePolicy
     public function viewAny(User $user): bool
     {
         return in_array($user->role, ['admin', 'dosen'], true);
+    }
+
+    public function viewCourseSummary(User $user, Course $course): bool
+    {
+        return $user->role === 'admin'
+            || ($user->role === 'dosen' && $course->lecturer_id === $user->id);
+    }
+
+    public function viewOwnSummary(User $user): bool
+    {
+        return $user->role === 'mahasiswa';
     }
 
     public function view(User $user, Grade $grade): bool

@@ -529,6 +529,23 @@ curl -X POST "$API/grades/4/publish" \
 
 **Gagal `403` (bukan dosen pengampu):** `{"message":"Anda tidak memiliki akses ke sumber daya ini."}`.
 
+### Rekap nilai mata kuliah
+
+**Dosen/Admin — Method / URI:** `GET /api/v1/courses/{course}/grade-summary`
+Dosen hanya dapat mengakses mata kuliah yang diampunya. Admin mengikuti akses rekap nilai yang berlaku untuk admin. Respons dipaginasi dan berisi nilai yang sudah dibuat; tugas yang belum dinilai tidak dihitung sebagai nilai nol.
+
+**Mahasiswa — Method / URI:** `GET /api/v1/my/grade-summary`
+Mengembalikan nilai terpublikasi milik mahasiswa yang sedang login untuk mata kuliah yang diikutinya. Identitas mahasiswa tidak diterima dari parameter request.
+
+```bash
+curl "$API/my/grade-summary?page=1" \
+	-H "Accept: application/json" -H "Authorization: ******"
+```
+
+Setiap item berisi identitas mahasiswa, mata kuliah, tugas, skor, feedback,
+waktu penilaian, waktu publikasi, dan `is_published`. Respons menggunakan
+format koleksi `data` dan `meta` yang sama dengan endpoint daftar lainnya.
+
 ## Notifikasi
 
 ### Daftar notifikasi

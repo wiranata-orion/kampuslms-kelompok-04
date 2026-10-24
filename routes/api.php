@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CourseApiController;
 use App\Http\Controllers\Api\CourseEnrollmentController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DirectResetPasswordController;
+use App\Http\Controllers\Api\GradeSummaryController;
 use App\Http\Controllers\Api\MaterialApiController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SubmissionController;
@@ -70,6 +71,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:60,1')->group(functio
         Route::get('/courses/{course}', [CourseApiController::class, 'show'])->name('courses.show');
 
         Route::scopeBindings()->group(function () {
+            Route::get('/courses/{course}/grade-summary', [GradeSummaryController::class, 'course'])->name('courses.grades.summary');
+
             // Enrollment management (admin & course lecturer via policy)
             Route::get('/courses/{course}/enrollments/candidates', [CourseEnrollmentController::class, 'candidates'])->name('courses.enrollments.candidates');
             Route::get('/courses/{course}/students', [CourseEnrollmentController::class, 'students'])->name('courses.students');
@@ -100,6 +103,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:60,1')->group(functio
 
         // Submissions & Grades
         Route::get('/my/submissions', [SubmissionController::class, 'mine'])->name('submissions.mine');
+        Route::get('/my/grade-summary', [GradeSummaryController::class, 'mine'])->name('grades.summary.mine');
         Route::get('/submissions/{submission}', [SubmissionController::class, 'show'])->name('submissions.show');
         Route::get('/submissions/{submission}/download', [SubmissionController::class, 'download'])->name('submissions.download');
         Route::get('/submissions/{submission}/grade', [SubmissionController::class, 'studentGrade'])->name('submissions.student-grade');
