@@ -204,20 +204,6 @@ export function usePageData(page) {
                     rows.value = array(response);
                     pagination.value = response.data.meta;
                     break;
-                case 'grade-summary':
-                    if (user.value.role === 'mahasiswa') {
-                        response = await api.get('/my/grade-summary', { params: { page: currentPage.value } });
-                    } else {
-                        const [courseResponse, summaryResponse] = await Promise.all([
-                            api.get(`/courses/${id}`),
-                            api.get(`/courses/${id}/grade-summary`, { params: { page: currentPage.value } }),
-                        ]);
-                        data.value = courseResponse.data.data;
-                        response = summaryResponse;
-                    }
-                    rows.value = array(response);
-                    pagination.value = response.data.meta;
-                    break;
                 case 'my-submissions':
                     response = await api.get('/my/submissions', { params: { page: currentPage.value } });
                     rows.value = array(response);
@@ -381,21 +367,6 @@ export function usePageData(page) {
         }
     }
 
-    async function publishGrade() {
-        if (!data.value?.grade?.id) return;
-
-        loading.value = true;
-        error.value = '';
-        try {
-            await api.post(`/grades/${data.value.grade.id}/publish`);
-            await load();
-        } catch (requestError) {
-            error.value = getErrorMessage(requestError);
-        } finally {
-            loading.value = false;
-        }
-    }
-
     async function download(url, filename) {
         try {
             const response = await api.get(url, { responseType: 'blob' });
@@ -444,7 +415,7 @@ export function usePageData(page) {
     return {
         user, data, rows, lecturers, candidates, loading, error, fieldErrors, search, status, role,
         currentPage, pagination, form, fields, mode, router, load, submit, login,
-        remove, enroll, removeStudent, readNotification, readAllNotifications, publishGrade,
-        download, preview, submitAssignment, goToPage, setFile,
+        remove, enroll, removeStudent, readNotification, readAllNotifications,
+        download, submitAssignment, goToPage, setFile,
     };
 }
