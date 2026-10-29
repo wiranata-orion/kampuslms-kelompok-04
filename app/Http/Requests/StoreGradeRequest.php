@@ -2,10 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Grade;
-use App\Models\Submission;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Gate;
 
 class StoreGradeRequest extends FormRequest
 {

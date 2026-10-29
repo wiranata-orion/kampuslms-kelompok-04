@@ -2,15 +2,14 @@
 
 namespace App\Http\Requests;
 
-use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Gate;
 
 class StoreUserRequest extends FormRequest
 {
+    // TODO: ganti dengan pengecekan hak akses sungguhan (Policy) di minggu 7
     public function authorize(): bool
     {
-        return Gate::allows('create', User::class);
+        return true;
     }
 
     public function rules(): array

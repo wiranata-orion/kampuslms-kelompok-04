@@ -160,9 +160,10 @@ class AuthorizationPolicyTest extends TestCase
 
         $this->post('/api/v1/assignments/'.$published->id.'/submissions', [
             'file' => UploadedFile::fake()->create('replacement.pdf', 10, 'application/pdf'),
-        ], ['Accept' => 'application/json'])
-            ->assertOk()
-            ->assertJsonPath('data.original_name', 'replacement.pdf');
+        ], ['Accept' => 'application/json'])->assertForbidden();
+        $this->putJson('/api/v1/submissions/'.$submissionId, ['note' => 'Revisi'])
+            ->assertForbidden();
+
         $this->actingAs($otherStudent, 'sanctum')
             ->getJson('/api/v1/submissions/'.$submissionId)
             ->assertForbidden();
@@ -180,7 +181,7 @@ class AuthorizationPolicyTest extends TestCase
             ->assertOk();
         $this->get('/api/v1/submissions/'.$submissionId.'/download')
             ->assertOk()
-            ->assertDownload('replacement.pdf');
+            ->assertDownload('answer.pdf');
         $this->getJson('/api/v1/assignments/'.$published->id.'/submissions')
             ->assertOk();
 
@@ -189,7 +190,7 @@ class AuthorizationPolicyTest extends TestCase
             ->assertOk();
         $this->get('/api/v1/submissions/'.$submissionId.'/download')
             ->assertOk()
-            ->assertDownload('replacement.pdf');
+            ->assertDownload('answer.pdf');
     }
 
     public function test_deadline_validation_is_422_and_grade_visibility_requires_publication(): void
@@ -368,19 +369,11 @@ class AuthorizationPolicyTest extends TestCase
         ])->assertOk()->assertJsonPath('data.title', 'Tautan diperbarui');
         $this->deleteJson('/api/v1/materials/'.$adminMaterialId)->assertOk();
 
-        $uploadedMaterial = $this->actingAs($lecturer, 'sanctum')
+        $this->actingAs($lecturer, 'sanctum')
             ->post('/api/v1/courses/'.$course->id.'/materials', [
                 ...$metadata,
                 'file' => UploadedFile::fake()->create('upload.pdf', 2, 'application/pdf'),
             ], ['Accept' => 'application/json'])
-            ->assertCreated()
-            ->assertJsonPath('data.original_name', 'upload.pdf')
-            ->assertJsonPath('data.download_available', true);
-
-        $this->post('/api/v1/courses/'.$course->id.'/materials', [
-            ...$metadata,
-            'file' => UploadedFile::fake()->create('script.php', 2, 'text/x-php'),
-        ], ['Accept' => 'application/json'])
             ->assertUnprocessable();
     }
 

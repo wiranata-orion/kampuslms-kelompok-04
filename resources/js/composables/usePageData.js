@@ -46,8 +46,10 @@ export function usePageData(page) {
             material: [
                 { name: 'title', label: 'Judul materi', required: true },
                 { name: 'description', label: 'Deskripsi', type: 'textarea' },
-                { name: 'type', label: 'Jenis materi', type: 'select', required: true, options: [{ value: 'file', text: 'Berkas' }, { value: 'link', text: 'Tautan eksternal' }] },
-                { name: 'file', label: 'Pilih Berkas Materi (PDF, PPTX, PPT, DOC, DOCX maks. 20 MB)', type: 'file', accept: '.pdf,.pptx,.ppt,.docx,.doc' },
+                { name: 'type', label: 'Jenis materi', type: 'select', required: true, options: [{ value: 'file', text: 'Berkas' }, { value: 'link', text: 'Tautan' }] },
+                { name: 'original_name', label: 'Nama berkas' },
+                { name: 'file_size', label: 'Ukuran berkas (byte)', type: 'number', min: 0 },
+                { name: 'mime_type', label: 'Tipe konten (MIME)' },
                 { name: 'external_url', label: 'URL eksternal', type: 'url' },
             ],
             user: [
@@ -63,7 +65,7 @@ export function usePageData(page) {
             ],
             submission: [
                 { name: 'note', label: 'Catatan untuk dosen', type: 'textarea' },
-                { name: 'file', label: 'Pilih Berkas Tugas', type: 'file', accept: '.pdf,.doc,.docx' },
+                { name: 'file', label: 'Ganti file', type: 'file' },
             ],
             enrollment: [
                 { name: 'user_id', label: 'Mahasiswa', type: 'select', required: true, options: candidates.value.map((item) => ({ value: item.id, text: `${item.name} (${item.nim_nip ?? item.email})` })) },
@@ -242,7 +244,7 @@ export function usePageData(page) {
                         api.get(`/courses/${id}/enrollments/candidates`),
                     ]);
                     data.value.students = array(students);
-                    pagination.value = response ? students.data.meta : null;
+                    pagination.value = students.data.meta;
                     candidates.value = candidatesResponse.data.data.candidates;
                     if (page === 'enrollment-form') clearForm();
                     break;
@@ -265,6 +267,7 @@ export function usePageData(page) {
 
     async function submit() {
         error.value = '';
+        // Bersihkan error per-field sebelum submit
         for (const key of Object.keys(fieldErrors)) delete fieldErrors[key];
         try {
             const id = route.params.id;
@@ -281,71 +284,32 @@ export function usePageData(page) {
             if (page === 'submission-form') {
                 const body = new FormData();
                 body.append('note', form.note ?? '');
-                if (form.file instanceof File) {
-                    if (form.file.size > 5 * 1024 * 1024) {
-                        const sizeInMb = (form.file.size / (1024 * 1024)).toFixed(2);
-                        error.value = `Ukuran file tugas maksimal 5 MB. (Ukuran file yang dipilih: ${sizeInMb} MB)`;
-                        fieldErrors.file = error.value;
-                        return;
-                    }
-                    body.append('file', form.file);
-                }
-                const assignmentId = data.value.assignment_id || data.value.assignment?.id;
-                if (assignmentId) {
-                    await api.post(`/assignments/${assignmentId}/submissions`, body);
-                } else {
-                    body.append('_method', 'PUT');
-                    await api.post(`/submissions/${id}`, body);
-                }
+                if (form.file instanceof File) body.append('file', form.file);
+                body.append('_method', 'PUT');
+                await api.post(`/submissions/${id}`, body);
                 await router.push(`/submissions/${id}`);
                 return;
             }
             const editing = mode.value === 'edit';
+            const payload = Object.fromEntries(fields.value.map(({ name }) => [name, form[name]]));
             const resource = {
                 'course-form': { url: editing ? `/courses/${id}` : '/courses', back: editing ? `/courses/${id}` : '/courses' },
                 'assignment-form': { url: editing ? `/assignments/${id}` : '/assignments', back: editing ? `/courses/${data.value.course_id}/assignments` : `/courses/${id}` },
                 'material-form': { url: editing ? `/materials/${id}` : `/courses/${id}/materials`, back: editing ? `/courses/${data.value.course_id}/materials` : `/courses/${id}/materials` },
                 'user-form': { url: editing ? `/users/${id}` : '/users', back: editing ? `/users/${id}` : '/users' },
             }[page];
-
-            if (page === 'material-form') {
-                const formData = new FormData();
-                formData.append('title', form.title ?? '');
-                formData.append('description', form.description ?? '');
-                formData.append('type', form.type ?? 'file');
-                if (form.type === 'file') {
-                    if (form.file instanceof File) {
-                        if (form.file.size > 20 * 1024 * 1024) {
-                            const sizeInMb = (form.file.size / (1024 * 1024)).toFixed(2);
-                            error.value = `Ukuran berkas materi maksimal 20 MB. (Ukuran file yang dipilih: ${sizeInMb} MB)`;
-                            fieldErrors.file = error.value;
-                            return;
-                        }
-                        formData.append('file', form.file);
-                    }
-                } else if (form.type === 'link') {
-                    formData.append('external_url', form.external_url ?? '');
-                }
-
-                if (editing) {
-                    formData.append('_method', 'PUT');
-                    await api.post(resource.url, formData);
-                } else {
-                    await api.post(resource.url, formData);
-                }
-                await router.push(resource.back);
-                return;
-            }
-
-            const payload = Object.fromEntries(fields.value.filter(f => f.type !== 'file').map(({ name }) => [name, form[name]]));
             if (page === 'assignment-form' && !editing) payload.course_id = id;
-            if (editing) {
+            if (page === 'material-form') {
+                if (editing) await api.put(resource.url, payload);
+                else await api.post(resource.url, payload);
+            } else if (editing) {
                 await api.put(resource.url, payload);
             } else {
                 await api.post(resource.url, payload);
             }
             await router.push(resource.back);
         } catch (requestError) {
+            // Tangani error validasi 422: isi fieldErrors per field
             const responseErrors = requestError.response?.data?.errors;
             if (requestError.response?.status === 422 && responseErrors) {
                 Object.assign(fieldErrors, Object.fromEntries(
@@ -402,7 +366,6 @@ export function usePageData(page) {
     async function readNotification(notification) {
         try {
             await api.post(`/notifications/${notification.id}/read`);
-            window.dispatchEvent(new CustomEvent('notifications-updated'));
             await load();
         } catch (requestError) {
             error.value = getErrorMessage(requestError);
@@ -412,7 +375,6 @@ export function usePageData(page) {
     async function readAllNotifications() {
         try {
             await api.post('/notifications/read-all');
-            window.dispatchEvent(new CustomEvent('notifications-updated'));
             await load();
         } catch (requestError) {
             error.value = getErrorMessage(requestError);
@@ -448,45 +410,11 @@ export function usePageData(page) {
         }
     }
 
-    // Pratinjau PDF di tab baru tanpa URL permanen: blob dibuat di memori dan dicabut setelah dipakai.
-    async function preview(url) {
-        // Tab dibuka sinkron agar tidak diblokir popup blocker.
-        const tab = window.open('', '_blank');
-        try {
-            const response = await api.get(url, { responseType: 'blob', params: { preview: 1 } });
-            const objectUrl = URL.createObjectURL(response.data);
-            if (tab) {
-                tab.location.href = objectUrl;
-            } else {
-                window.open(objectUrl, '_blank');
-            }
-            setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
-        } catch (requestError) {
-            tab?.close();
-            error.value = getErrorMessage(requestError);
-        }
-    }
-
     async function submitAssignment(file, note) {
-        error.value = '';
         if (!file) {
             error.value = 'Pilih berkas pengumpulan terlebih dahulu.';
             return;
         }
-
-        if (file.size > 5 * 1024 * 1024) {
-            const sizeInMb = (file.size / (1024 * 1024)).toFixed(2);
-            error.value = `Ukuran file tugas maksimal 5 MB. (Ukuran file yang dipilih: ${sizeInMb} MB)`;
-            return;
-        }
-
-        const allowedExtensions = ['pdf', 'doc', 'docx'];
-        const ext = file.name.split('.').pop()?.toLowerCase();
-        if (!allowedExtensions.includes(ext)) {
-            error.value = 'Format file tugas harus berupa PDF, DOC, atau DOCX.';
-            return;
-        }
-
         const body = new FormData();
         body.append('file', file);
         body.append('note', note ?? '');

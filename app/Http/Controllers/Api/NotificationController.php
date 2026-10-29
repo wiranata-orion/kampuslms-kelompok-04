@@ -6,19 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\NotificationResource;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
-use Illuminate\Notifications\DatabaseNotification;
 
 class NotificationController extends Controller
 {
-    /**
-     * Tampilkan seluruh riwayat notifikasi user melalui auth()->user()->notifications.
-     */
-    public function index(Request $request)
-    {
-        $notifications = auth()->user()->notifications()->latest()->paginate($request->integer('per_page', 15));
+	public function index(Request $request)
+	{
+		$notifications = $request->user()->notifications()->latest()->paginate(15);
 
-        return ApiResponse::collection($notifications, NotificationResource::class, $request);
-    }
+		return ApiResponse::collection($notifications, NotificationResource::class, $request);
+	}
 
     /**
      * Ambil jumlah pesan belum dibaca via auth()->user()->unreadNotifications->count().
@@ -35,12 +31,10 @@ class NotificationController extends Controller
         ]);
     }
 
-    /**
-     * Ambil detail satu notifikasi dengan validasi kepemilikan.
-     */
-    public function show(Request $request, string $id)
-    {
-        $notification = DatabaseNotification::findOrFail($id);
+		return response()->json([
+			'data' => (new NotificationResource($notification))->resolve($request),
+		]);
+	}
 
         // Validasi kepemilikan: ID penerima harus cocok dengan ID user yang sedang login
         abort_if(

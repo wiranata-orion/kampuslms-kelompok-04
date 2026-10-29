@@ -244,13 +244,13 @@ class ApiContractTest extends TestCase
 
     public function test_material_file_download_is_authenticated_and_course_scoped(): void
     {
-        Storage::fake('local');
+        Storage::fake('public');
         $lecturer = User::factory()->dosen()->create();
         $student = User::factory()->create();
         $course = $this->createCourse($lecturer, 'API250');
         $course->students()->attach($student->id, ['enrolled_at' => now()]);
         $path = UploadedFile::fake()->create('slide.pdf', 10, 'application/pdf')
-            ->store('materials', 'local');
+            ->store('materials', 'public');
 
         $material = new Material;
         $material->course_id = $course->id;
