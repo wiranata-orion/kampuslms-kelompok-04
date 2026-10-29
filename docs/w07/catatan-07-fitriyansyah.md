@@ -17,3 +17,5 @@ Implementasi policy dan query IDOR:
 3. Menerapkan keputusan rancangan terkait tugas draft, satu kali pengumpulan, deadline `422`, larangan revisi, penghapusan course/tugas yang memiliki data tertentu, dan publikasi nilai. Nilai memakai `published_at` melalui migration dan endpoint publish.
 4. Contoh controller, Form Request, Blade `@can`, penggunaan flag izin untuk Vue, penjelasan kenapa Blade bukan pengganti otorisasi server, dan tabel IDOR tersedia di **docs/keamanan.md**. Detail resource API menyediakan flag `permissions` sebagai petunjuk UI—bukan pengganti policy.
 5. Skenario lintas-peran/IDOR Tugas 7 ada di AuthorizationPolicyTest.php, dengan runner test-authz.sh.
+
+Storage::disk('public')->put('', '');

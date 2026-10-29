@@ -215,6 +215,8 @@ class AuthorizationPolicyTest extends TestCase
         $this->actingAs($otherLecturer, 'sanctum')
             ->putJson('/api/v1/submissions/'.$submission->id.'/grade', ['score' => 75])
             ->assertForbidden();
+        $this->putJson('/api/v1/submissions/'.$submission->id.'/grade', ['score' => 101])
+            ->assertForbidden();
 
         $grade = $this->actingAs($lecturer, 'sanctum')
             ->putJson('/api/v1/submissions/'.$submission->id.'/grade', ['score' => 75])

@@ -1,59 +1,87 @@
 # Catatan Minggu 4
 
-Nama : Jeshua
-NIM : 10241037
+Nama : Jeshua Austin Daceka  
+NIM : 10241037  
 Kelas : A
 
 ## 4.3 Read → Break → Fix → Build
 
-### READ: Telusuri satu siklus form gagal (30 menit)
+### READ: Menelusuri proses validasi form
 
-**1. Method apa yang menerima request? Di controller mana?**
+**1. Method yang menangani pengiriman form**
 
-Saat form tambah mata kuliah dikirim, yang menerima adalah `CourseController::store()`. Saat form edit dikirim, yang menerima adalah `CourseController::update()`. Di `routes/web.php`, `POST /courses` dipetakan ke `CourseController@store` dan `PUT/PATCH /courses/{course}` ke `CourseController@update`. Controllernya ada di `app/Http/Controllers/CourseController.php`.
+Form tambah mata kuliah diproses oleh method `store()` pada `CourseController`, sedangkan form edit mata kuliah diproses oleh method `update()`. Keduanya dihubungkan dengan route yang sesuai di `routes/web.php`.
 
-**2. Validasi terjadi sebelum atau sesudah baris pertama method controller?**
+**2. Kapan validasi dijalankan?**
 
-Sebelum. Signature method-nya `store(StoreCourseRequest $request)`, jadi Laravel membuat dan menjalankan `StoreCourseRequest` lebih dulu (`authorize()` lalu `rules()`). Baris pertama di dalam method, `$validated = $request->validated();`, baru berjalan kalau validasi lolos. Aturan untuk `sks` ada di `app/Http/Requests/StoreCourseRequest.php`.
+Validasi dijalankan sebelum isi method controller diproses. Hal ini karena parameter method menggunakan `StoreCourseRequest` atau Form Request lain yang sesuai. Laravel memeriksa aturan validasi terlebih dahulu, sehingga data baru diteruskan ke controller jika memenuhi aturan yang ditentukan.
 
-**3. Ke mana Laravel me-redirect setelah gagal? Siapa yang menentukan tujuannya?**
+**3. Tujuan redirect ketika validasi gagal**
 
-Kembali ke halaman sebelumnya (yaitu form `courses/create`), dengan membawa pesan error dan input lama. Tujuannya ditentukan oleh mekanisme `FormRequest` bawaan Laravel (melalui `ValidationException`), bukan oleh kode di controller. Karena kami tidak mengubah `redirect` atau `redirectTo` di request ini, yang dipakai adalah perilaku default.
+Jika input tidak memenuhi aturan validasi, Laravel akan mengembalikan pengguna ke halaman sebelumnya. Laravel juga membawa informasi kesalahan dan input yang sebelumnya dikirim. Dengan begitu, pengguna bisa memperbaiki form tanpa harus memulai pengisian dari awal.
 
-**4. Dari mana `@error('sks')` mengambil pesannya?**
+**4. Cara kerja `@error('sks')`**
 
-Dari variabel `$errors` yang diisi Laravel ke session setelah validasi gagal. `@error('sks')` sama fungsinya dengan mengambil pesan pertama untuk field `sks` dari `$errors`. Teks pesannya berasal dari `messages()` di `StoreCourseRequest`, misalnya `'sks.between' => 'SKS harus antara 1 sampai 6.'`. Kalau tidak ada pesan custom, dipakai pesan bawaan Laravel.
+`@error('sks')` digunakan untuk menampilkan pesan kesalahan khusus pada field `sks`. Pesan tersebut berasal dari hasil validasi Laravel yang disimpan dalam error bag. Jika nilai SKS tidak sesuai aturan, misalnya di luar rentang yang diperbolehkan, pesan kesalahan dapat ditampilkan di dekat input tersebut.
 
-**5. Dari mana `old('sks')` mengambil nilainya? Berapa lama bertahan?**
+**5. Fungsi `old('sks')`**
 
-Dari input request sebelumnya yang disimpan Laravel ke session sebagai flash data saat redirect karena validasi gagal (`withInput()`). Nilai ini hanya bertahan untuk satu request berikutnya, yaitu saat form ditampilkan ulang. Kalau halaman dimuat ulang lagi, nilainya sudah hilang. Batas `SESSION_LIFETIME=120` menit hanya berlaku untuk umur session-nya, bukan untuk umur `old()`.
+`old('sks')` digunakan untuk mengisi kembali field dengan nilai yang sebelumnya dikirim pengguna ketika validasi gagal. Nilai ini berasal dari input lama yang disimpan sementara melalui session flash. Dengan begitu, pengguna tidak perlu mengetik ulang semua data yang sudah benar.
 
-**6. Nama cookie session Laravel di DevTools**
+**6. Cookie session Laravel**
 
-`[isi sesuai yang kamu lihat di DevTools]`. Di Laravel 12 namanya diturunkan dari `APP_NAME`, dengan format seperti `laravel-session` atau `nama-app-session`, sesuai konfigurasi `cookie` di `config/session.php`.
+Cookie session digunakan untuk membantu Laravel mengenali session pengguna di antara request. Nama cookie yang digunakan perlu diperiksa melalui DevTools pada bagian Application → Cookies. Pada konfigurasi default Laravel, nama cookie biasanya `laravel_session`, tetapi nama yang sebenarnya perlu dicocokkan dengan konfigurasi aplikasi.
 
 ---
 
-### BREAK: Tujuh kerusakan (45 menit)
+### BREAK: Tujuh kerusakan
 
-Uji coba lewat `curl`:
+| No. | Perubahan yang dicoba | Hasil yang perlu diamati |
+|---|---|---|
+| 1 | Menghapus `@csrf` dari form | Request ditolak karena token CSRF tidak tersedia atau tidak valid. |
+| 2 | Mengganti `$request->validated()` dengan `$request->all()` | Data yang tidak seharusnya diterima dapat ikut diproses jika tidak ada perlindungan lain. |
+| 3 | Menghapus validasi `exists` pada `lecturer_id` | ID dosen yang tidak tersedia berpotensi diterima oleh aplikasi, meskipun constraint database masih bisa menolaknya. |
+| 4 | Menghapus validasi nilai yang diizinkan untuk `status` | Nilai status di luar pilihan yang ditentukan berpotensi masuk ke proses penyimpanan. |
+| 5 | Menghapus `withQueryString()` pada pagination | Parameter pencarian tidak lagi otomatis dibawa ketika berpindah halaman. |
+| 6 | Mengganti redirect setelah penyimpanan dengan `return view()` | Refresh halaman dapat mengirim ulang request POST dan berpotensi membuat data duplikat. |
+| 7 | Menghapus `old()` dari input form | Input yang sebelumnya sudah diisi tidak otomatis muncul kembali setelah validasi gagal. |
 
-```bash
-curl -X POST http://kampuslms.test/courses \
-  -H "X-CSRF-TOKEN: <ambil dari halaman>" \
-  -b cookies.txt \
-  -d "code=XX01" -d "name=Uji" -d "sks=3" \
-  -d "lecturer_id=99999" -d "status=superadmin"
-```
+### Catatan hasil observasi
 
-| # | Yang dirusak | Prediksi saya | Yang saya amati |
-|---|--------------|---------------|-----------------|
-| 1 | Hapus `@csrf` dari form, lalu kirim | [isi] | Muncul error `419 Page Expired`. CSRF token mencegah pihak luar mengirim request palsu atas nama pengguna yang sedang login dari halaman yang bukan milik aplikasi. |
-| 2 | Ganti `$request->validated()` menjadi `$request->all()`, lalu kirim field liar lewat `curl` | [isi] | Field di luar aturan validasi ikut diteruskan ke model, sehingga mass assignment terbuka lagi. Kolom yang tidak seharusnya diisi pengguna bisa ikut tersimpan. |
-| 3 | Hapus validasi `exists:users,id` pada `lecturer_id`, kirim `lecturer_id=99999` | [isi] | Nilai `99999` diterima dan masuk ke database, padahal dosen dengan id itu tidak ada. Terbentuk data yatim yang tidak konsisten. |
-| 4 | Hapus validasi `in:...` pada `status`, kirim `status=superadmin` | [isi] | Nilai `superadmin` lolos, padahal status hanya boleh `draft`, `active`, atau `archived`. Nilai enum jadi bisa dijebol. |
-| 5 | Hapus `->withQueryString()`, lakukan pencarian lalu klik halaman 2 | [isi] | Kata kunci pencarian hilang di halaman 2 dan hasilnya kembali ke daftar tanpa filter. Pagination harus membawa parameter query. |
-| 6 | Ganti `return redirect()` menjadi `return view()` pada `store`, lalu tekan F5 setelah simpan | [isi] | Browser mengirim ulang POST yang sama sehingga data tersimpan dua kali. Inilah alasan pola Post/Redirect/Get (PRG) dipakai. |
-| 7 | Hapus `old(...)` dari semua input, lalu kirim form dengan satu kesalahan | [isi] | Setelah gagal, semua kolom kosong dan saya harus mengisi ulang dari awal. Pengalaman pengguna buruk dan peluang salah ketik bertambah. |
+1. **Perlindungan CSRF:** Setelah `@csrf` dihapus, request form dapat ditolak dengan status `419` karena token CSRF tidak tersedia atau tidak sesuai. Hal ini menunjukkan bahwa form web Laravel membutuhkan token yang valid untuk request yang dilindungi CSRF.
 
-**Kesimpulan:** `@csrf`, `FormRequest`, validasi tiap field, redirect setelah POST, dan `old()` bekerja bersama supaya form aman, datanya konsisten, dan nyaman dipakai.
+2. **Penggunaan `validated()`:** Menggunakan `$request->all()` membuat controller menerima seluruh input request, bukan hanya data yang lolos validasi Form Request. Karena itu, penggunaan `validated()` membantu membatasi data yang diproses sesuai aturan validasi.
+
+3. **Validasi `lecturer_id`:** Aturan `exists` memastikan ID dosen yang dikirim memang tersedia di tabel yang diperiksa. Jika aturan ini dihapus, ID yang tidak valid bisa melewati validasi aplikasi, tetapi hasil akhirnya tetap bergantung pada constraint database dan proses penyimpanan.
+
+4. **Validasi `status`:** Pembatasan nilai status diperlukan agar data yang disimpan tetap sesuai pilihan yang didukung aplikasi. Tanpa pembatasan tersebut, nilai yang tidak dikenal bisa diteruskan ke proses berikutnya apabila tidak ada pemeriksaan tambahan.
+
+5. **Pagination:** `withQueryString()` membantu mempertahankan parameter URL, termasuk kata kunci pencarian, saat pengguna berpindah halaman. Jika dihapus, pengguna bisa kehilangan filter yang sebelumnya digunakan.
+
+6. **Redirect setelah POST:** Redirect setelah proses penyimpanan menerapkan pola Post/Redirect/Get (PRG). Pola ini membantu mencegah pengiriman ulang form saat halaman di-refresh, meskipun bukan jaminan mutlak bahwa duplikasi tidak akan terjadi.
+
+7. **Penggunaan `old()`:** Tanpa `old()`, nilai input sebelumnya tidak otomatis ditampilkan kembali setelah validasi gagal. Pengguna perlu mengisi ulang field yang kosong atau kehilangan nilai yang sebelumnya sudah dimasukkan.
+
+### FIX
+
+**Temuan 1:**
+- Gejala: [Isi berdasarkan masalah yang ditemukan.]
+- Penyebab: [Jelaskan penyebabnya berdasarkan kode.]
+- Perbaikan: [Tuliskan file dan perubahan yang dilakukan.]
+
+**Temuan 2:**
+- Gejala: [Isi berdasarkan masalah yang ditemukan.]
+- Penyebab: [Jelaskan penyebabnya berdasarkan kode.]
+- Perbaikan: [Tuliskan file dan perubahan yang dilakukan.]
+
+---
+
+### BUILD: Kerangka KampusLMS
+
+- [ ] Struktur migrasi sesuai spesifikasi, termasuk foreign key, constraint, dan index.
+- [ ] Model memiliki relasi yang sesuai serta pengaturan mass assignment yang aman.
+- [ ] Factory dan seeder dapat menghasilkan data pengujian yang dibutuhkan.
+- [ ] CRUD mata kuliah berjalan untuk proses melihat, menambah, mengubah, dan menghapus data.
+- [ ] CRUD pengguna berjalan dengan pengaturan role yang tidak dapat diubah sembarangan melalui input pengguna.
+- [ ] Pengujian migrasi berhasil dan konfigurasi rahasia tidak ikut diunggah ke repository.
+- [ ] Perubahan fitur diperiksa melalui pengujian dan proses review sebelum digabungkan ke branch utama.

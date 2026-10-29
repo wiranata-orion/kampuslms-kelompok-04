@@ -11,6 +11,7 @@ const page = usePageData('course');
             <RouterLink v-if="page.data.value && page.user.value?.role === 'admin'" class="button" :to="`/courses/${page.data.value.id}/edit`">Edit mata kuliah</RouterLink>
             <RouterLink v-if="page.data.value && page.user.value?.role === 'admin'" class="button button-quiet" :to="`/courses/${page.data.value.id}/enrollments`">Kelola peserta</RouterLink>
             <RouterLink v-if="page.data.value && ['admin', 'dosen'].includes(page.user.value?.role)" class="button" :to="`/courses/${page.data.value.id}/assignments/create`">Buat tugas</RouterLink>
+            <RouterLink v-if="page.data.value && ['admin', 'dosen'].includes(page.user.value?.role)" class="button button-quiet" :to="`/courses/${page.data.value.id}/grade-summary`">Rekap nilai</RouterLink>
             <RouterLink v-if="page.data.value && ['admin', 'dosen'].includes(page.user.value?.role)" class="button button-quiet" :to="`/courses/${page.data.value.id}/materials/create`">Tambah materi</RouterLink>
         </template>
         <section v-if="page.data.value" class="panel">
