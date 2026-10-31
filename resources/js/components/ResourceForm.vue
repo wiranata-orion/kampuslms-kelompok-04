@@ -18,7 +18,7 @@ defineEmits(['submit', 'file-change']);
     <form class="panel form-grid" @submit.prevent="$emit('submit')">
         <div
             v-for="field in fields"
-            v-show="!showMaterialFields || (field.name === 'external_url' ? model.type === 'link' : ['original_name', 'file_size', 'mime_type'].includes(field.name) ? model.type === 'file' : true)"
+            v-show="!showMaterialFields || (field.name === 'external_url' ? model.type === 'link' : field.name === 'file' ? model.type === 'file' : true)"
             :key="field.name"
             class="field"
             :class="{ 'span-all': field.type === 'textarea', 'has-error': fieldErrors[field.name] }"
@@ -34,7 +34,8 @@ defineEmits(['submit', 'file-change']);
                 v-else-if="field.type === 'file'"
                 :id="field.name"
                 type="file"
-                :required="showMaterialFields && model.type === 'file' && !model.id"
+                :accept="field.accept"
+                :required="field.required || (showMaterialFields && model.type === 'file' && !model.id)"
                 @change="$emit('file-change', $event)"
             >
             <input
@@ -45,7 +46,7 @@ defineEmits(['submit', 'file-change']);
                 :min="field.min"
                 :max="field.max"
                 :step="field.step"
-                :required="field.required || (showMaterialFields && model.type === 'link' && field.name === 'external_url') || (showMaterialFields && model.type === 'file' && ['original_name', 'file_size'].includes(field.name))"
+                :required="field.required || (showMaterialFields && model.type === 'link' && field.name === 'external_url')"
                 :class="{ 'input-error': fieldErrors[field.name] }"
             >
             <!-- Pesan error per field dari respons 422 Laravel -->

@@ -12,9 +12,6 @@ const route = useRoute();
         <span class="eyebrow">KampusLMS</span>
         <h1>Masuk akun</h1>
         <p>Gunakan email kampus untuk melanjutkan.</p>
-        <p v-if="route.query.passwordReset === 'success'" class="success" role="status">
-            Kata sandi berhasil diperbarui. Silakan masuk dengan kata sandi baru.
-        </p>
         <p v-if="page.error.value" class="error" role="alert">{{ page.error.value }}</p>
         <ResourceForm
             :fields="page.fields.value"
@@ -23,11 +20,6 @@ const route = useRoute();
             submit-label="Masuk ke KampusLMS"
             @submit="page.login"
         />
-        <div class="auth-footer">
-            <router-link to="/forgot-password" class="reset-link">
-                Lupa kata sandi?
-            </router-link>
-        </div>
     </section>
 </template>
 

@@ -8,9 +8,9 @@ Endpoint selain `POST /auth/login` memerlukan token Sanctum di header `Authoriza
 
 | Peran | Email | Password default |
 |---|---|---|
-| Admin | `admin@kampuslms.test` | `1234` |
-| Dosen | `dosen@kampuslms.test` | `1234` |
-| Mahasiswa | `mahasiswa@kampuslms.test` | `1234` |
+| Admin | `admin@kampuslms.test` | `password` |
+| Dosen | `dosen@kampuslms.test` | `password` |
+| Mahasiswa | `mahasiswa@kampuslms.test` | `password` |
 
 Akun tersebut dibuat oleh `DemoAccountSeeder`. Password default berlaku jika `.env` tidak menetapkan `DEMO_ACCOUNT_PASSWORD`; jika variabel itu ada, gunakan nilainya. Jalankan seeder sebelum memakai akun demo.
 

@@ -8,39 +8,39 @@ use Illuminate\Support\Facades\Gate;
 
 class StoreAssignmentRequest extends FormRequest
 {
-	public function authorize(): bool
-	{
-		return Gate::allows('createAny', Assignment::class);
-	}
+    public function authorize(): bool
+    {
+        return Gate::allows('createAny', Assignment::class);
+    }
 
-	public function rules(): array
-	{
-		return [
-			'course_id' => ['required', 'integer', 'exists:courses,id'],
-			'title' => ['required', 'string', 'max:150'],
-			'instructions' => ['required', 'string'],
-			'due_at' => ['required', 'date'],
-			'max_score' => ['nullable', 'integer', 'between:1,100'],
-			'allow_late' => ['nullable', 'boolean'],
-			'status' => ['required', 'in:draft,published'],
-		];
-	}
+    public function rules(): array
+    {
+        return [
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'title' => ['required', 'string', 'max:150'],
+            'instructions' => ['required', 'string'],
+            'due_at' => ['required', 'date'],
+            'max_score' => ['nullable', 'integer', 'between:1,100'],
+            'allow_late' => ['nullable', 'boolean'],
+            'status' => ['required', 'in:draft,published'],
+        ];
+    }
 
-	public function messages(): array
-	{
-		return [
-			'title.required' => 'Judul tugas wajib diisi.',
-			'title.string' => 'Judul tugas harus berupa teks.',
-			'title.max' => 'Judul tugas maksimal 150 karakter.',
-			'instructions.required' => 'Instruksi tugas wajib diisi.',
-			'instructions.string' => 'Instruksi tugas harus berupa teks.',
-			'due_at.required' => 'Batas waktu pengumpulan wajib diisi.',
-			'due_at.date' => 'Format batas waktu pengumpulan tidak valid.',
-			'max_score.integer' => 'Nilai maksimum harus berupa bilangan bulat.',
-			'max_score.between' => 'Nilai maksimum harus antara 1 sampai 100.',
-			'allow_late.boolean' => 'Pengaturan keterlambatan tidak valid.',
-			'status.required' => 'Status tugas wajib dipilih.',
-			'status.in' => 'Status tugas tidak valid.',
-		];
-	}
+    public function messages(): array
+    {
+        return [
+            'title.required' => 'Judul tugas wajib diisi.',
+            'title.string' => 'Judul tugas harus berupa teks.',
+            'title.max' => 'Judul tugas maksimal 150 karakter.',
+            'instructions.required' => 'Instruksi tugas wajib diisi.',
+            'instructions.string' => 'Instruksi tugas harus berupa teks.',
+            'due_at.required' => 'Batas waktu pengumpulan wajib diisi.',
+            'due_at.date' => 'Format batas waktu pengumpulan tidak valid.',
+            'max_score.integer' => 'Nilai maksimum harus berupa bilangan bulat.',
+            'max_score.between' => 'Nilai maksimum harus antara 1 sampai 100.',
+            'allow_late.boolean' => 'Pengaturan keterlambatan tidak valid.',
+            'status.required' => 'Status tugas wajib dipilih.',
+            'status.in' => 'Status tugas tidak valid.',
+        ];
+    }
 }

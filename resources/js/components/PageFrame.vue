@@ -20,7 +20,7 @@ defineEmits(['page']);
         </header>
         <p v-if="error" class="error" role="alert">{{ error }}</p>
         <p v-if="loading" class="panel" role="status">Memuat data…</p>
-        <slot v-else />
+        <slot v-if="!loading" />
         <nav v-if="pagination && pagination.last_page > 1" class="pagination" aria-label="Pagination">
             <button class="button button-quiet" :disabled="pagination.current_page <= 1" @click="$emit('page', pagination.current_page - 1)">Sebelumnya</button>
             <span>Halaman {{ pagination.current_page }} dari {{ pagination.last_page }} · {{ pagination.total }} data</span>
