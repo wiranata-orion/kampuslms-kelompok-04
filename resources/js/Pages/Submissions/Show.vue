@@ -18,6 +18,8 @@ const page = usePageData('submission');
                 <RouterLink v-if="page.user.value?.role === 'mahasiswa' && !page.data.value.is_graded && !page.data.value.grade" class="button button-quiet" :to="`/submissions/${page.data.value.id}/edit`">Edit pengumpulan</RouterLink>
                 <RouterLink v-if="page.user.value?.role === 'mahasiswa'" class="button" :to="`/submissions/${page.data.value.id}/grade`">Lihat nilai</RouterLink>
                 <RouterLink v-if="page.user.value?.role === 'dosen'" class="button" :to="`/submissions/${page.data.value.id}/grade`">{{ page.data.value.grade ? 'Edit nilai' : 'Beri nilai' }}</RouterLink>
+                <button v-if="page.user.value?.role === 'dosen' && page.data.value.grade && !page.data.value.grade.published_at" class="button" :disabled="page.loading.value" @click="page.publishGrade">Publikasikan nilai</button>
+                <span v-else-if="page.user.value?.role === 'dosen' && page.data.value.grade?.published_at" class="pill graded">Nilai dipublikasikan</span>
             </div>
             <section v-if="page.user.value?.role === 'dosen' && page.data.value.grade" class="grade-summary"><h2>{{ page.data.value.grade.score }} / {{ page.data.value.assignment?.max_score }} poin</h2><p>{{ page.data.value.grade.feedback || 'Belum ada umpan balik.' }}</p></section>
         </section>

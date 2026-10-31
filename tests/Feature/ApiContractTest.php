@@ -397,10 +397,28 @@ class ApiContractTest extends TestCase
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.student.id', $student->id);
 
+        foreach ([
+            [['score' => -1], 'score', 'min'],
+            [['score' => 101], 'score', 'max'],
+            [['score' => 'bukan angka'], 'score', 'numeric'],
+            [['score' => 50, 'feedback' => []], 'feedback', 'string'],
+            [[], 'score', 'required'],
+        ] as [$payload, $field, $rule]) {
+            $this->putJson('/api/v1/submissions/'.$submissionId.'/grade', $payload)
+                ->assertUnprocessable()
+                ->assertJsonPath('message', 'Data yang diberikan tidak valid.')
+                ->assertJsonStructure(['errors' => [$field]])
+                ->assertJsonPath('errors.'.$field.'.0', fn ($message) => is_string($message) && $message !== '');
+        }
+        $this->assertDatabaseCount('grades', 0);
+
         $grade = $this->putJson('/api/v1/submissions/'.$submissionId.'/grade', [
-            'score' => 80,
-            'feedback' => 'Baik',
-        ])->assertCreated()->assertJsonPath('data.score', '80.00');
+            'score' => 0,
+        ])->assertCreated()
+            ->assertJsonPath('data.score', '0.00')
+            ->assertJsonPath('data.feedback', null)
+            ->assertJsonPath('data.graded_by', $lecturer->id)
+            ->assertJsonPath('data.graded_at', fn ($value) => $value !== null);
         $gradeId = $grade->json('data.id');
 
         $this->getJson('/api/v1/grades/'.$gradeId)
@@ -409,12 +427,34 @@ class ApiContractTest extends TestCase
             ->assertJsonPath('data.grade.id', $gradeId)
             ->assertJsonPath('data.assignment.course.code', 'API301');
 
+        $this->postJson('/api/v1/grades/'.$gradeId.'/publish')
+            ->assertOk()
+            ->assertJsonPath('data.published_at', fn ($value) => $value !== null);
+
         $this->putJson('/api/v1/submissions/'.$submissionId.'/grade', [
-            'score' => 90,
+            'score' => 100,
             'feedback' => 'Revisi nilai',
-        ])->assertOk()->assertJsonPath('data.score', '90.00');
+        ])->assertOk()
+            ->assertJsonPath('data.id', $gradeId)
+            ->assertJsonPath('data.score', '100.00')
+            ->assertJsonPath('data.published_at', null)
+            ->assertJsonPath('data.graded_by', $lecturer->id);
+
+        $this->getJson('/api/v1/assignments/'.$assignmentId.'/submissions')
+            ->assertOk()
+            ->assertJsonPath('data.0.student.id', $student->id)
+            ->assertJsonPath('data.0.grade.score', '100.00')
+            ->assertJsonMissingPath('data.0.file_path');
 
         $this->assertDatabaseCount('grades', 1);
+        $this->assertDatabaseHas('grades', [
+            'id' => $gradeId,
+            'submission_id' => $submissionId,
+            'graded_by' => $lecturer->id,
+            'score' => '100.00',
+            'feedback' => 'Revisi nilai',
+            'published_at' => null,
+        ]);
 
         $this->patchJson('/api/v1/assignments/'.$assignmentId, ['title' => 'Tugas Revisi'])
             ->assertOk()

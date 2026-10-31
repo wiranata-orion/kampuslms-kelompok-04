@@ -25,6 +25,8 @@ import SubmissionIndex from './Pages/Submissions/Index.vue';
 import SubmissionShow from './Pages/Submissions/Show.vue';
 import SubmissionForm from './Pages/Submissions/Form.vue';
 import GradeShow from './Pages/Grades/Show.vue';
+import GradeSummary from './Pages/Grades/Summary.vue';
+import Settings from './Pages/Settings/Index.vue';
 import Forbidden from './Pages/Errors/Forbidden.vue';
 import NotFound from './Pages/Errors/NotFound.vue';
 
@@ -65,6 +67,8 @@ const router = createRouter({
         { path: '/submissions/:id', alias: ['/dosen/submissions/:id', '/mahasiswa/submissions/:id'], name: 'submission', component: SubmissionShow },
         { path: '/submissions/:id/edit', alias: '/mahasiswa/submissions/:id/edit', name: 'submission-edit', component: SubmissionForm },
         { path: '/submissions/:id/grade', alias: '/mahasiswa/submissions/:id/grade', name: 'grade', component: GradeShow },
+        { path: '/my/grade-summary', name: 'my-grade-summary', component: GradeSummary },
+        { path: '/courses/:id/grade-summary', name: 'course-grade-summary', component: GradeSummary },
         { path: '/dosen/submissions/:id/grade/create', name: 'grade-create-legacy', component: GradeShow },
         { path: '/dosen/grades/:id/edit', name: 'grade-edit-legacy', component: GradeShow, meta: { gradeById: true } },
         { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFound, meta: { public: true } },
