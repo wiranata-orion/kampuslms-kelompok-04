@@ -25,5 +25,6 @@ return new class extends Migration
     {
         Schema::dropIfExists('users');
     }
+    // migrasi bisa dibaikkan
 };
 

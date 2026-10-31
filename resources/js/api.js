@@ -22,8 +22,16 @@ export function setToken(token) {
 }
 
 export function getErrorMessage(error) {
+    if (error.response?.status === 413) {
+        return 'Ukuran file terlalu besar dan melebihi batas maksimal server.';
+    }
+
+    const firstFieldError = Object.values(error.response?.data?.errors ?? {}).flat()[0];
+    if (firstFieldError) {
+        return firstFieldError;
+    }
+
     return error.response?.data?.message
-        ?? Object.values(error.response?.data?.errors ?? {}).flat()[0]
         ?? error.message
         ?? 'Terjadi kesalahan. Silakan coba lagi.';
 }

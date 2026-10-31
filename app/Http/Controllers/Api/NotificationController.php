@@ -6,25 +6,31 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\NotificationResource;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
 
 class NotificationController extends Controller
 {
-	public function index(Request $request)
-	{
-		$notifications = $request->user()->notifications()->latest()->paginate(15);
+    /**
+     * Tampilkan seluruh riwayat notifikasi user melalui auth()->user()->notifications.
+     */
+    public function index(Request $request)
+    {
+        $notifications = auth()->user()->notifications()->latest()->paginate($request->integer('per_page', 15));
 
-		return ApiResponse::collection($notifications, NotificationResource::class, $request);
-	}
+        return ApiResponse::collection($notifications, NotificationResource::class, $request);
+    }
 
 	public function read(Request $request, string $id)
 	{
 		$notification = $request->user()->notifications()->whereKey($id)->firstOrFail();
 		$notification->markAsRead();
 
-		return response()->json([
-			'data' => (new NotificationResource($notification))->resolve($request),
-		]);
-	}
+    /**
+     * Ambil detail satu notifikasi dengan validasi kepemilikan.
+     */
+    public function show(Request $request, string $id)
+    {
+        $notification = DatabaseNotification::findOrFail($id);
 
 	public function readAll(Request $request)
 	{

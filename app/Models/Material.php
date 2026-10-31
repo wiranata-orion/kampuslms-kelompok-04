@@ -28,6 +28,38 @@ class Material extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::deleting(function (Material $material) {
+            if ($material->file_path) {
+                if (\Illuminate\Support\Facades\Storage::disk('local')->exists($material->file_path)) {
+                    \Illuminate\Support\Facades\Storage::disk('local')->delete($material->file_path);
+                }
+                if (\Illuminate\Support\Facades\Storage::disk('public')->exists($material->file_path)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($material->file_path);
+                }
+            }
+        });
+    }
+
+    public function getFormattedFileSizeAttribute(): ?string
+    {
+        if ($this->file_size === null) {
+            return null;
+        }
+
+        $bytes = (int) $this->file_size;
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $i = 0;
+
+        while ($bytes >= 1024 && $i < count($units) - 1) {
+            $bytes /= 1024;
+            $i++;
+        }
+
+        return round($bytes, 2).' '.$units[$i];
+    }
+
     // Relasi tambahan (tidak diwajibkan eksplisit di Bagian 4.3,
     // tapi diperlukan agar akses dua arah Course <-> Material konsisten)
 
