@@ -12,6 +12,19 @@ Platform Learning Management System (LMS) berbasis **Laravel API** dan **Vue 3 S
 
 ---
 
+## 🔑 Akun Demo (Pengujian Lokal)
+Sesuai Bagian 4.4 Spesifikasi Proyek:
+
+| Peran | Email | Kata Sandi |
+|---|---|---|
+| **Admin** | `admin@kampuslms.test` | `password` |
+| **Dosen** | `dosen@kampuslms.test` | `password` |
+| **Mahasiswa** | `mahasiswa@kampuslms.test` | `password` |
+
+*(Akun demo terbuat secara otomatis saat menjalankan seeder `php artisan migrate --seed`)*
+
+---
+
 ## 💻 Cara Penggunaan Git & Repository
 
 ### 1. Initial Clone
@@ -156,6 +169,55 @@ composer run dev
 - **Frontend**: Vue, Vue Router, Axios
 
 ---
+
+## ⚙️ Penanganan Queue Worker
+
+Proyek ini menggunakan driver `database` untuk menangani proses *background job* dan antrean tugas (*queue*).
+
+### 1. Konfigurasi Environment (`.env`)
+Pastikan variabel `QUEUE_CONNECTION` di dalam file `.env` sudah diatur ke `database`:
+
+```env
+QUEUE_CONNECTION=database
+```
+
+### 2. Menjalankan Queue Worker
+Jalankan perintah berikut pada terminal untuk memproses antrean tugas di latar belakang:
+
+```bash
+php artisan queue:work --timeout=60 --tries=3
+```
+
+**Keterangan Opsi:**
+- `--timeout=60`: Menetapkan batas waktu maksimum pemrosesan suatu *job* selama 60 detik sebelum dianggap terhenti (*timed out*).
+- `--tries=3`: Menentukan jumlah maksimal percobaan eksekusi suatu *job* jika mengalami kegagalan.
+
+### 3. Penanganan Job Gagal (*Failed Jobs*)
+Jika sebuah tugas antrean gagal diproses setelah mencapai batas maksimal percobaan (`$tries`), tugas tersebut akan dicatat ke dalam tabel `failed_jobs`. Gunakan perintah Artisan berikut untuk mengelola *job* yang gagal:
+
+- **Melihat daftar *job* yang gagal:**
+  ```bash
+  php artisan queue:failed
+  ```
+
+- **Mencoba kembali (*retry*) *job* yang gagal:**
+  ```bash
+  # Menjalankan ulang satu job gagal tertentu berdasarkan ID atau UUID:
+  php artisan queue:retry <id-atau-uuid>
+
+  # Menjalankan ulang seluruh job gagal sekaligus:
+  php artisan queue:retry all
+  ```
+
+- **Menghapus (*forget*) *job* dari daftar gagal:**
+  ```bash
+  # Menghapus satu job gagal tertentu:
+  php artisan queue:forget <id-atau-uuid>
+
+  # Menghapus seluruh riwayat job gagal sekaligus:
+  php artisan queue:flush
+  ```
+
 
 ## 📌 Pembagian Peran
 - **Feniria**: 

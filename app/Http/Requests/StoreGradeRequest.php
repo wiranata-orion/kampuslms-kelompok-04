@@ -2,13 +2,25 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Grade;
+use App\Models\Submission;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class StoreGradeRequest extends FormRequest
 {
 	public function authorize(): bool
 	{
-		return true;
+		$submission = $this->route('submission');
+
+		if (! $submission instanceof Submission) {
+			return false;
+		}
+
+		$submission->loadMissing(['assignment.course', 'grade']);
+		$grade = $submission->grade;
+
+		return Gate::allows($grade ? 'update' : 'create', $grade ?? [Grade::class, $submission]);
 	}
 
 	public function rules(): array

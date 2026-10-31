@@ -18,6 +18,15 @@ class MaterialPolicy
         return $this->canViewCourse($user, $material->course);
     }
 
+    /**
+     * Unduh/pratinjau berkas materi: admin, dosen pengampu, dan mahasiswa yang
+     * terdaftar di mata kuliah berstatus active (aturan yang sama dengan view).
+     */
+    public function download(User $user, Material $material): bool
+    {
+        return $this->canViewCourse($user, $material->course);
+    }
+
     public function create(User $user, Course $course): bool
     {
         return $user->role === 'admin'

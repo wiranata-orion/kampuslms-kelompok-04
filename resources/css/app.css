@@ -68,7 +68,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     background: linear-gradient(145deg, #edf3ff, #f5efff 68%, #fff0f8);
     color: var(--blue-deep);
 }
-#app .nav-row { flex-wrap: wrap; }
+#app .nav-row { flex-wrap: wrap; overflow: visible; }
 #app .nav-row a {
     padding: 8px 11px;
     border-radius: 8px;

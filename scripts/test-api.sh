@@ -11,7 +11,7 @@ BASE_URL="${BASE_URL:-http://127.0.0.1:8000/api/v1}"
 MAHASISWA_EMAIL="mahasiswa@kampuslms.test"
 DOSEN_A_EMAIL="dosen@kampuslms.test"
 DOSEN_B_EMAIL="nbogan@example.org"
-PASSWORD="test1234"
+PASSWORD="${PASSWORD:-password}"
 
 for command in curl jq; do
     if ! command -v "$command" >/dev/null 2>&1; then
