@@ -13,13 +13,13 @@ di `AuthServiceProvider`.
 | Hapus course | Hanya jika tidak memiliki enrollment, materi, atau tugas | Tidak | Tidak |
 | Lihat materi | Semua | Materi course yang diampu | Materi course `active` yang diikuti |
 | CRUD materi | Ya | Hanya pada course yang diampu | Tidak |
-| Lihat tugas | Semua | Tugas course yang diampu | Tugas `published` pada course `active` yang diikuti |
-| Buat/ubah tugas | Ya | Hanya pada course yang diampu | Tidak |
-| Hapus tugas | Jika belum memiliki nilai | Jika course diampu dan belum memiliki nilai | Tidak |
+| Lihat assignment | Semua | Tugas course yang diampu | Tugas `published` pada course `active` yang diikuti |
+| Buat/ubah assignment | Ya | Hanya pada course yang diampu | Tidak |
+| Hapus assignment | Jika belum memiliki nilai | Jika course diampu dan belum memiliki nilai | Tidak |
 | Lihat daftar submission per tugas | Ya | Jika course diampu | Tidak |
 | Lihat/unduh submission | Ya | Jika course diampu | Submission milik sendiri |
 | Membuat submission | Tidak | Tidak | Peserta terdaftar, tugas `published`, course `active`, dan belum pernah mengumpulkan |
-| Mengubah submission | Tidak | Tidak | Tidak; revisi tidak diperbolehkan |
+| Mengubah submission | Tidak | Tidak | Iya; Jika belum dinilai |
 | Menghapus submission | Ya | Jika course diampu | Tidak |
 | Melihat nilai | Ya | Jika course diampu | Nilai sendiri setelah dipublikasikan |
 | Memberi/mengubah/mempublikasikan nilai | Tidak | Jika course diampu | Tidak |
@@ -93,10 +93,10 @@ sedangkan record yang ada tetapi bukan hak pemanggil menghasilkan `403`.
 | `POST /assignments` | Memalsukan `course_id` untuk membuat tugas di course dosen lain | `AssignmentPolicy::create` menerima course hasil lookup server |
 | `PUT/PATCH/DELETE /assignments/{assignment}` | Mengubah/menghapus tugas milik pengampu lain | `AssignmentPolicy::update/delete`; delete juga memeriksa `grades()->exists()` |
 | `GET /assignments/{assignment}/submissions` | Membaca daftar jawaban course lain | `SubmissionPolicy::viewAny` memeriksa admin atau dosen pengampu |
-| `POST /assignments/{assignment}/submissions` | Mengirim jawaban pada tugas orang lain, draft, atau mengirim ulang | `SubmissionPolicy::create` di `StoreSubmissionRequest`; peran, enrollment `exists()`, status, course aktif, dan `submissions()->exists()` |
+| `POST /assignments/{assignment}/submissions` | Mengirim jawaban pada tugas orang lain, draft, atau mengirim ulang | `SubmissionPolicy::create` di `StoreSubmissionRequest`; peran, enrollment `exists()`, status, dan course aktif. Pengumpulan ulang menggunakan `updateOrCreate` menggantikan berkas lama |
 | `GET /my/submissions` | Membaca submission pengguna lain lewat daftar | `SubmissionPolicy::viewAny` dan query relasi `$user->submissions()` |
-| `GET /submissions/{submission}` dan `/download` | Mengganti ID untuk membaca/mengunduh jawaban mahasiswa lain | `SubmissionPolicy::view`: admin, dosen pengampu, atau pemilik submission |
-| `PUT /submissions/{submission}` | Mengubah jawaban memakai ID submission | `SubmissionPolicy::update` selalu menolak; pengumpulan ulang memang tidak diperbolehkan |
+| `GET /submissions/{submission}` dan `/download` | Mengganti ID untuk membaca/mengunduh jawaban mahasiswa lain | `SubmissionPolicy::view`: admin, dosen pengampu, atau pemilik submission. File disimpan di disk privat `local` |
+| `PUT /submissions/{submission}` | Mengubah jawaban memakai ID submission | Revisi pengumpulan tugas dilakukan lewat endpoint `POST /assignments/{assignment}/submissions` (updateOrCreate) |
 | `DELETE /submissions/{submission}` (belum ada route) | Menghapus jawaban milik pengguna/course lain | `SubmissionPolicy::delete`: admin atau dosen pengampu |
 | `PUT /submissions/{submission}/grade` | Memberi/mengubah nilai milik course lain | `GradePolicy::create/update` menuntut dosen pengampu dari submission |
 | `GET /grades/{grade}`, `GET /submissions/{submission}/grade` | Membaca nilai pengguna lain atau nilai yang belum diumumkan | `GradePolicy::view`; mahasiswa hanya nilai submission sendiri dengan `published_at` terisi |
@@ -108,22 +108,20 @@ sedangkan record yang ada tetapi bukan hak pemanggil menghasilkan `403`.
 | `GET/POST /users` | Mengakses daftar akun atau membuat akun melalui role selain admin | `UserPolicy::viewAny/create` hanya mengizinkan admin |
 | `DELETE /users/{user}` | Menghapus akun sendiri atau dosen yang masih mengampu course | `UserPolicy::delete`; diri sendiri ditolak dan dosen hanya dapat dihapus jika `taughtCourses()->exists()` bernilai false |
 
-## Skenario uji submission (Tugas 7)
+## Skenario uji submission dan berkas (Minggu 9)
 
-`tests/Feature/AuthorizationPolicyTest.php` dan `scripts/test-authz.sh`
+`tests/Feature/AuthorizationPolicyTest.php`, `tests/Feature/SubmissionUploadTest.php`, dan `scripts/test-authz.sh`
 memverifikasi skenario berikut:
 
-- Mahasiswa peserta dapat mengumpulkan submission satu kali ke tugas published
-  pada course aktif.
-- Mahasiswa yang bukan peserta, dosen, dan admin ditolak; mahasiswa juga ditolak
-  untuk tugas draft atau submission kedua.
+- Mahasiswa peserta dapat mengumpulkan submission ke tugas published pada course aktif.
+- Mahasiswa yang bukan peserta, dosen, dan admin ditolak untuk submission mahasiswa.
+- Mahasiswa dapat mengumpulkan ulang (revisi): baris database lama ditimpa lewat `updateOrCreate` dan berkas fisik lama dihapus dari disk privat.
+- Validasi berkas: wajib ada, `mimes:pdf,doc,docx`, maksimal 5 MB (`5120 KB`).
 - Deadline yang terlewati ketika `allow_late=false` menghasilkan `422`.
-- Pemilik submission dapat melihat dan mengunduh submission sendiri, tetapi ID
-  submission mahasiswa lain ditolak.
-- Dosen pengampu dan admin dapat melihat/mengunduh submission; dosen lain tidak.
-- Endpoint revisi submission ditolak untuk semua peran.
-- Dosen lain tidak dapat memberi atau memublikasikan nilai; mahasiswa hanya
-  dapat melihat nilainya sendiri setelah dosen memublikasikannya.
+- `is_late` dihitung di server berdasarkan `due_at`.
+- Pemilik submission, dosen pengampu, dan admin dapat melihat dan mengunduh submission; pihak lain menghasilkan `403`.
+- Berkas fisik dihapus secara otomatis saat record dihapus via Eloquent deleting event.
+- Dosen lain tidak dapat memberi atau mempublikasikan nilai; mahasiswa hanya dapat melihat nilainya sendiri setelah dosen mempublikasikannya.
 
 Jalankan tes terfokus dengan:
 
