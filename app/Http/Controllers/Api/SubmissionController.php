@@ -27,7 +27,8 @@ class SubmissionController extends Controller
         $submissions = $request->user()->submissions()
             ->with(['assignment.course', 'grade'])
             ->latest('submitted_at')
-            ->paginate(15);
+            ->orderByDesc('id')
+            ->paginate(20);
 
         return ApiResponse::collection($submissions, SubmissionResource::class, $request);
     }

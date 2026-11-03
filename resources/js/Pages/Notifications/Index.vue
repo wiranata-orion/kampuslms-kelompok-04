@@ -1,21 +1,23 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import PageFrame from '../../components/PageFrame.vue';
 import { usePageData } from '../../composables/usePageData';
 
 const page = usePageData('notifications');
-const filter = ref('all'); // 'all' | 'unread'
+const filter = computed(() => page.status.value || 'all');
 
 const displayedNotifications = computed(() => {
-    if (filter.value === 'unread') {
-        return page.rows.value.filter((item) => !item.read_at);
-    }
     return page.rows.value;
 });
 
 const unreadTotal = computed(() => {
     return page.rows.value.filter((item) => !item.read_at).length;
 });
+
+function setFilter(value) {
+    page.status.value = value;
+    page.goToPage(1);
+}
 </script>
 
 <template>
@@ -33,14 +35,16 @@ const unreadTotal = computed(() => {
                     <button 
                         class="tab-btn" 
                         :class="{ active: filter === 'all' }" 
-                        @click="filter = 'all'"
+                        :disabled="page.loading.value"
+                        @click="setFilter('all')"
                     >
                         Semua ({{ page.rows.value.length }})
                     </button>
                     <button 
                         class="tab-btn" 
                         :class="{ active: filter === 'unread' }" 
-                        @click="filter = 'unread'"
+                        :disabled="page.loading.value"
+                        @click="setFilter('unread')"
                     >
                         Belum dibaca ({{ unreadTotal }})
                     </button>

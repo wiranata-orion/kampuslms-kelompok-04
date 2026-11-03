@@ -21,7 +21,7 @@ class GradeSummaryController extends Controller
             ->with(['submission.student', 'submission.assignment.course'])
             ->latest('graded_at')
             ->orderByDesc('id')
-            ->paginate(15);
+            ->paginate(20);
 
         return ApiResponse::collection($grades, GradeSummaryResource::class, $request);
     }
@@ -40,7 +40,7 @@ class GradeSummaryController extends Controller
             ->with(['submission.student', 'submission.assignment.course'])
             ->latest('graded_at')
             ->orderByDesc('id')
-            ->paginate(15);
+            ->paginate(20);
 
         return ApiResponse::collection($grades, GradeSummaryResource::class, $request);
     }

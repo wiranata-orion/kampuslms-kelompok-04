@@ -162,7 +162,7 @@ class GradeSummaryTest extends TestCase
             ->assertOk()
             ->assertExactJson([
                 'data' => [],
-                'meta' => ['current_page' => 1, 'last_page' => 1, 'total' => 0],
+                'meta' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 20, 'total' => 0],
             ]);
 
         $this->actingAs($student, 'sanctum')
@@ -170,13 +170,48 @@ class GradeSummaryTest extends TestCase
             ->assertOk()
             ->assertExactJson([
                 'data' => [],
-                'meta' => ['current_page' => 1, 'last_page' => 1, 'total' => 0],
+                'meta' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 20, 'total' => 0],
             ]);
 
         $this->actingAs(User::factory()->admin()->create(), 'sanctum')
             ->getJson('/api/v1/courses/'.$course->id.'/grade-summary')
             ->assertOk()
             ->assertJsonPath('meta.total', 0);
+    }
+
+    public function test_grade_summary_uses_twenty_rows_per_page_and_keeps_pages_distinct(): void
+    {
+        $lecturer = User::factory()->dosen()->create();
+        $student = User::factory()->create();
+        $course = $this->createCourse($lecturer, 'REKAP501');
+
+        for ($index = 1; $index <= 21; $index++) {
+            $assignment = $this->createAssignment($course, $lecturer, 'Tugas '.$index);
+            $this->createGrade(
+                $this->createSubmission($assignment, $student),
+                $lecturer,
+                $index,
+                'Feedback '.$index,
+            );
+        }
+
+        $this->actingAs($lecturer, 'sanctum');
+        $pageOne = $this->getJson('/api/v1/courses/'.$course->id.'/grade-summary?page=1')
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.per_page', 20)
+            ->assertJsonPath('meta.total', 21)
+            ->assertJsonCount(20, 'data');
+        $pageTwo = $this->getJson('/api/v1/courses/'.$course->id.'/grade-summary?page=2')
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonCount(1, 'data');
+
+        $firstPageIds = array_column($pageOne->json('data'), 'id');
+        $secondPageIds = array_column($pageTwo->json('data'), 'id');
+        $this->assertSame([], array_intersect($firstPageIds, $secondPageIds));
+        $this->assertCount(21, array_unique(array_merge($firstPageIds, $secondPageIds)));
     }
 
     private function createCourse(User $lecturer, string $code): Course

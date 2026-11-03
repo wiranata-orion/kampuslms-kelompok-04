@@ -34,7 +34,7 @@ class CourseEnrollmentController extends Controller
     public function students(Request $request, Course $course): JsonResponse
     {
         Gate::authorize('manageEnrollment', $course);
-        $students = $course->students()->orderBy('name')->paginate(20);
+        $students = $course->students()->orderBy('name')->orderBy('users.id')->paginate(20);
 
         return ApiResponse::collection($students, UserResource::class, $request);
     }
