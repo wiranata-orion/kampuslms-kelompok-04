@@ -44,13 +44,18 @@ class SubmissionPolicy
     public function update(User $user, Submission $submission): bool
     {
         $submission->loadMissing('assignment.course');
+        $course = $submission->assignment->course;
 
         return $user->role === 'mahasiswa'
             && $submission->user_id === $user->id
             && $submission->assignment->status === 'published'
-            && $submission->assignment->course->status === 'active'
-            && $submission->assignment->course->students()->whereKey($user->id)->exists()
-            && ! $submission->grade()->exists();
+            && $course->status === 'active'
+            && ($course->relationLoaded('students')
+                ? $course->students->contains('id', $user->getKey())
+                : $course->students()->whereKey($user->getKey())->exists())
+            && ! ($submission->relationLoaded('grade')
+                ? $submission->getRelation('grade') !== null
+                : $submission->grade()->exists());
     }
 
     public function delete(User $user, Submission $submission): bool
