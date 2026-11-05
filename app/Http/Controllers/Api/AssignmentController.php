@@ -73,7 +73,8 @@ class AssignmentController extends Controller
         $submissions = $assignment->submissions()
             ->with(['assignment.course', 'student', 'grade.grader'])
             ->latest('submitted_at')
-            ->paginate(15);
+            ->orderByDesc('id')
+            ->paginate(20);
 
         return ApiResponse::collection($submissions, SubmissionResource::class, $request);
     }

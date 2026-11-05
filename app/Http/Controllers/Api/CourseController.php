@@ -44,7 +44,8 @@ class CourseController extends Controller
             ->with('lecturer')
             ->withCount(['materials', 'assignments'])
             ->orderBy('name')
-            ->paginate(15);
+            ->orderBy('id')
+            ->paginate(20);
 
         return ApiResponse::collection($courses, CourseResource::class, $request);
     }
@@ -107,7 +108,8 @@ class CourseController extends Controller
         $materials = $course->materials()
             ->with(['uploader', 'course'])
             ->latest()
-            ->paginate(15);
+            ->orderByDesc('id')
+            ->paginate(20);
 
         return ApiResponse::collection($materials, MaterialResource::class, $request);
     }
@@ -126,7 +128,8 @@ class CourseController extends Controller
             ->when($request->user()->role === 'mahasiswa', fn($query) => $query->where('status', 'published'))
             ->when(isset($validated['status']), fn($query) => $query->where('status', $validated['status']))
             ->orderByDesc('due_at')
-            ->paginate(15);
+            ->orderByDesc('id')
+            ->paginate(20);
 
         return ApiResponse::collection($assignments, AssignmentResource::class, $request);
     }

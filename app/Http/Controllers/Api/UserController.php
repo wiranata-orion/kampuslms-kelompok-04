@@ -24,10 +24,11 @@ class UserController extends Controller
                 $query->where(fn($q) => $q->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%"));
             })
-            ->when($request->filled('role'), fn($query) => $query->where('role', $request->query('role')))
-            ->orderBy('name');
+            ->when($request->filled('role'), fn ($query) => $query->where('role', $request->query('role')))
+            ->orderBy('name')
+            ->orderBy('id');
 
-        return ApiResponse::collection($query->paginate(15), UserResource::class, $request);
+        return ApiResponse::collection($query->paginate(20), UserResource::class, $request);
     }
 
     public function store(StoreUserRequest $request): JsonResponse

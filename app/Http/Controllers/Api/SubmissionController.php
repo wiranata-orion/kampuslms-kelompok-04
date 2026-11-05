@@ -32,7 +32,8 @@ class SubmissionController extends Controller
                 'grade',
             ])
             ->latest('submitted_at')
-            ->paginate(15);
+            ->orderByDesc('id')
+            ->paginate(20);
 
         return ApiResponse::collection($submissions, SubmissionResource::class, $request);
     }

@@ -15,7 +15,14 @@ class NotificationController extends Controller
      */
     public function index(Request $request)
     {
-        $notifications = auth()->user()->notifications()->latest()->paginate($request->integer('per_page', 15));
+        $validated = $request->validate([
+            'filter' => ['sometimes', 'in:all,unread'],
+        ]);
+        $notifications = $request->user()->notifications()
+            ->when(($validated['filter'] ?? 'all') === 'unread', fn ($query) => $query->whereNull('read_at'))
+            ->latest()
+            ->orderByDesc('id')
+            ->paginate(20);
 
         return ApiResponse::collection($notifications, NotificationResource::class, $request);
     }
