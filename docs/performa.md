@@ -1,4 +1,42 @@
 # Performa sebelum optimasi
+
+#### sebagian besar query berasal dari tabel `cache`
+ 
+Dari seluruh tabel Query di dokumen ini, query ke tabel `cache` dihitung per halaman:
+| Role | Halaman | Total query | Query tabel `cache` | Bukan `cache` | Porsi `cache` |
+|---|---|---|---|---|---|
+| Mahasiswa | Login-Home Page | 97 | 62 | 35 | 64% |
+| Mahasiswa | Kelas Saya | 10 | 6 | 4 | 60% |
+| Mahasiswa | Lihat Kelas | 35 | 14 | 21 | 40% |
+| Mahasiswa | Pengumpulan Saya | 72 | 37 | 35 | 51% |
+| Mahasiswa | Notification | 51 | 35 | 16 | 69% |
+| Dosen | Login-Home Page-Notification | 67 | 50 | 17 | 75% |
+| Dosen | Kelas Saya | 49 | 32 | 17 | 65% |
+| Dosen | Lihat Kelas | 75 | 45 | 30 | 60% |
+| Dosen | Lihat Pengumpulan | 45 | 23 | 22 | 51% |
+| Dosen | Rekap Nilai | 64 | 39 | 25 | 61% |
+| Dosen | Notification | 46 | 31 | 15 | 67% |
+| Admin | Login-Home Page | 67 | 50 | 17 | 75% |
+| Admin | Course | 52 | 36 | 16 | 69% |
+| Admin | Detail Course | 97 | 56 | 41 | 58% |
+| Admin | Rekap Nilai | 67 | 41 | 26 | 61% |
+| Admin | User | 50 | 34 | 16 | 68% |
+| Admin | Notification | 47 | 33 | 14 | 70% |
+| **Total** | | **991** | **624** | **367** | **63%** |
+
+#### Halaman yang layak di cache:
+
+| Role | Page | TTL |
+|------|------|-----|
+| Mahasiswa | Kelas Saya | ? |
+| Mahasiswa | Lihat Kelas | 10mnt / 5mnt |
+| Dosen | Kelas Saya | ? |
+| Dosen | Lihat Kelas | 10mnt / 5mnt |
+| Dosen | Rekap Nilai | 10mnt + invalidasi explisit |
+| Admin | Detail Course | 10mnt |
+| Admin | Rekap Nilai | 5mnt + invalidasi |
+| Semua | Home / Dashboard | admin 10mnt, dosen & mahasiswa 5mnt |
+
 ## Role: Mahasiswa
 ### Page: Login-Home Page
 #### Request: 
