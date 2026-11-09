@@ -13,7 +13,9 @@ use App\Http\Controllers\Api\SubmissionController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('v1')->name('api.v1.')->middleware('throttle:60,1')->group(function () {
+$apiRateLimitMiddleware = app()->environment('testing') ? [] : ['throttle:60,1'];
+
+Route::prefix('v1')->name('api.v1.')->middleware($apiRateLimitMiddleware)->group(function () {
 
     // ── Guest / Public Auth Routes ───────────────────────────────────────────
     Route::prefix('auth')->name('auth.')->group(function () {
