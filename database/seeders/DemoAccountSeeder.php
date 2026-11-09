@@ -10,7 +10,13 @@ class DemoAccountSeeder extends Seeder
 {
     public function run(): void
     {
-        $password_hash = Hash::make(env('DEMO_ACCOUNT_PASSWORD', 'password'));
+        // Dibaca dari config (bukan env()) agar aman setelah `config:cache`.
+        $password = config('demo.account_password')
+            ?? (app()->isProduction()
+                ? throw new \RuntimeException('DEMO_ACCOUNT_PASSWORD wajib diisi di production.')
+                : 'password');
+
+        $password_hash = Hash::make($password);
 
         // 1. Akun Demo Admin
         User::updateOrCreate(

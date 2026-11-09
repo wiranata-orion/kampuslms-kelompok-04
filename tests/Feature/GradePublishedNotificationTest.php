@@ -135,6 +135,44 @@ class GradePublishedNotificationTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_notifications_use_twenty_rows_per_page_and_apply_unread_filter_before_pagination(): void
+    {
+        $student = User::factory()->create();
+
+        for ($index = 0; $index < 21; $index++) {
+            $this->insertNotification((string) Str::uuid(), $student);
+        }
+
+        $this->actingAs($student, 'sanctum');
+        $firstPage = $this->getJson('/api/v1/notifications?page=1')
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.per_page', 20)
+            ->assertJsonPath('meta.total', 21)
+            ->assertJsonCount(20, 'data');
+        $lastPage = $this->getJson('/api/v1/notifications?page=2')
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonCount(1, 'data');
+
+        $this->assertSame(
+            [],
+            array_intersect(
+                array_column($firstPage->json('data'), 'id'),
+                array_column($lastPage->json('data'), 'id'),
+            ),
+        );
+
+        $readNotificationId = $lastPage->json('data.0.id');
+        DB::table('notifications')->where('id', $readNotificationId)->update(['read_at' => now()]);
+        $this->getJson('/api/v1/notifications?filter=unread')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 20)
+            ->assertJsonPath('meta.last_page', 1)
+            ->assertJsonCount(20, 'data');
+    }
+
     public function test_notification_endpoints_check_the_notifiable_type_as_well_as_the_user_id(): void
     {
         $student = User::factory()->create();

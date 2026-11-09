@@ -22,7 +22,7 @@ Endpoint berada di `routes/api.php` dan menggunakan middleware `auth:sanctum`. D
 - Sama-sama memerlukan login.
 
 **Perbedaan:**
-- `CourseController` menampilkan halaman Blade, sedangkan `CourseApiController` mengirim respons JSON.
+- `CourseController` menampilkan halaman Blade, sedangkan `CourseController` mengirim respons JSON.
 - Versi web mendukung pencarian dan filter status, sedangkan API membatasi data berdasarkan role pengguna.
 - API menyertakan jumlah materi dan tugas.
 

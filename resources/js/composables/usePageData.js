@@ -17,9 +17,19 @@ export function usePageData(page) {
     const status = ref('');
     const role = ref('');
     const currentPage = ref(1);
-    const pagination = ref(null);
+    const pagination = ref({ current_page: 1, last_page: 1, per_page: 20, total: 0 });
+    const resourcePages = reactive({ students: 1 });
+    const resourcePaginations = reactive({
+        students: { current_page: 1, last_page: 1, per_page: 20, total: 0 },
+    });
+    const resourceLoading = reactive({ students: false });
     const form = reactive({});
     const mode = computed(() => route.meta.mode);
+    const paginationGroups = computed(() => {
+        if (page !== 'course' || !data.value || user.value?.role !== 'admin') return [];
+
+        return [{ key: 'students', label: 'Peserta', pagination: resourcePaginations.students, loading: resourceLoading.students }];
+    });
 
     const fields = computed(() => {
         const configs = {
@@ -95,16 +105,46 @@ export function usePageData(page) {
         return response?.data?.data ?? [];
     }
 
-    async function load() {
+    function applyCoursePage(result, resource) {
+        if (result.status === 'rejected') {
+            error.value = getErrorMessage(result.reason);
+            return;
+        }
+
+        const response = result.value;
+        const meta = response.data?.meta;
+        if (
+            !Array.isArray(response.data?.data)
+            || !meta
+            || !Number.isInteger(meta.current_page)
+            || !Number.isInteger(meta.last_page)
+            || !Number.isInteger(meta.per_page)
+            || !Number.isInteger(meta.total)
+        ) {
+            error.value = `Respons daftar ${resource === 'assignments' ? 'tugas' : resource === 'materials' ? 'materi' : 'peserta'} tidak valid.`;
+            return;
+        }
+
+        data.value[resource] = response.data.data;
+        resourcePaginations[resource] = meta;
+    }
+
+    async function load(preserveCollection = false) {
         loading.value = true;
-        error.value = '';
-        rows.value = [];
-        data.value = null;
-        pagination.value = null;
-        candidates.value = [];
         try {
+            error.value = '';
+            if (!preserveCollection) {
+                rows.value = [];
+                data.value = null;
+                pagination.value = { current_page: currentPage.value, last_page: 1, per_page: 20, total: 0 };
+                resourcePaginations.students = { current_page: 1, last_page: 1, per_page: 20, total: 0 };
+                candidates.value = [];
+            }
             if (['about', 'welcome', 'forbidden', 'not-found', 'login'].includes(page)) return;
-            user.value = (await api.get('/me')).data.data;
+            const currentUserResponse = ['my-courses', 'course'].includes(page)
+                ? await api.get('/me', { timeout: 15000 })
+                : await api.get('/me');
+            user.value = currentUserResponse.data.data;
             const id = route.params.id;
             let response;
             switch (page) {
@@ -113,8 +153,14 @@ export function usePageData(page) {
                     user.value = data.value.user;
                     break;
                 case 'my-courses':
-                    response = await api.get('/my/courses', { params: { page: currentPage.value } });
-                    rows.value = array(response);
+                    response = await api.get('/my/courses', {
+                        params: { page: currentPage.value },
+                        timeout: 15000,
+                    });
+                    if (!Array.isArray(response.data?.data) || !response.data?.meta) {
+                        throw new Error('Respons daftar kelas tidak memiliki format pagination yang valid.');
+                    }
+                    rows.value = response.data.data;
                     pagination.value = response.data.meta;
                     break;
                 case 'courses':
@@ -123,16 +169,44 @@ export function usePageData(page) {
                     pagination.value = response.data.meta;
                     break;
                 case 'course':
-                    data.value = (await api.get(`/courses/${id}`)).data.data;
-                    data.value.assignments = array(await api.get(`/courses/${id}/assignments`));
-                    data.value.materials = array(await api.get(`/courses/${id}/materials`));
+                    {
+                        const courseResponse = await api.get(`/courses/${id}`, { timeout: 15000 });
+                        const course = courseResponse.data?.data;
+                        if (!course || typeof course !== 'object' || Array.isArray(course)) {
+                            throw new Error('Respons detail mata kuliah tidak valid.');
+                        }
+
+                        data.value = {
+                            ...course,
+                            ...(user.value.role === 'admin' ? { students: [] } : {}),
+                        };
+                    }
+                    loading.value = false;
+
+                    resourceLoading.students = user.value.role === 'admin';
                     if (user.value.role === 'admin') {
-                        const [students, enrolled] = await Promise.all([
-                            api.get(`/courses/${id}/students`),
-                            api.get(`/courses/${id}/enrollments/candidates`),
-                        ]);
-                        data.value.students = array(students);
-                        candidates.value = enrolled.data.data.candidates;
+                        try {
+                            const [students, enrollmentCandidates] = await Promise.allSettled([
+                                api.get(`/courses/${id}/students`, {
+                                    params: { page: resourcePages.students },
+                                    timeout: 15000,
+                                }),
+                                api.get(`/courses/${id}/enrollments/candidates`, { timeout: 15000 }),
+                            ]);
+                            applyCoursePage(students, 'students');
+                            if (enrollmentCandidates.status === 'fulfilled') {
+                                const candidateList = enrollmentCandidates.value.data?.data?.candidates;
+                                if (Array.isArray(candidateList)) {
+                                    candidates.value = candidateList;
+                                } else {
+                                    error.value = 'Respons daftar kandidat peserta tidak valid.';
+                                }
+                            } else {
+                                error.value = getErrorMessage(enrollmentCandidates.reason);
+                            }
+                        } finally {
+                            resourceLoading.students = false;
+                        }
                     }
                     break;
                 case 'course-assignments':
@@ -198,7 +272,7 @@ export function usePageData(page) {
                     if (data.value) Object.assign(form, data.value);
                     break;
                 case 'notifications':
-                    response = await api.get('/notifications', { params: { page: currentPage.value } });
+                    response = await api.get('/notifications', { params: { page: currentPage.value, filter: status.value || undefined } });
                     rows.value = array(response);
                     pagination.value = response.data.meta;
                     break;
@@ -242,7 +316,7 @@ export function usePageData(page) {
                         api.get(`/courses/${id}/enrollments/candidates`),
                     ]);
                     data.value.students = array(students);
-                    pagination.value = response ? students.data.meta : null;
+                    pagination.value = students.data.meta;
                     candidates.value = candidatesResponse.data.data.candidates;
                     if (page === 'enrollment-form') clearForm();
                     break;
@@ -373,8 +447,16 @@ export function usePageData(page) {
             await api.delete(`/${kind}/${item.id}`);
             if (kind === 'courses') return router.push('/courses');
             if (kind === 'users' && page === 'user') return router.push('/users');
-            if (kind === 'assignments') return router.push(`/courses/${item.course_id ?? data.value.course_id ?? data.value.id}/assignments`);
-            if (kind === 'materials') return router.push(`/courses/${item.course_id ?? data.value.course_id ?? data.value.id}/materials`);
+            if (kind === 'assignments' || kind === 'materials') {
+                const listPage = kind === 'assignments' ? 'course-assignments' : 'course-materials';
+                const listRoute = `/courses/${item.course_id ?? data.value.course_id ?? data.value.id}/${kind}`;
+                if (page === listPage && route.fullPath === listRoute) {
+                    await load();
+                } else {
+                    await router.push(listRoute);
+                }
+                return;
+            }
             await load();
         } catch (requestError) {
             error.value = getErrorMessage(requestError);
@@ -499,8 +581,28 @@ export function usePageData(page) {
     }
 
     function goToPage(pageNumber) {
+        if (loading.value || pageNumber < 1 || pageNumber > pagination.value.last_page) return;
         currentPage.value = pageNumber;
-        load();
+        load(['course-assignments', 'course-materials'].includes(page));
+    }
+
+    async function goToResourcePage(pageNumber, resource) {
+        const resourcePaths = { students: `/courses/${route.params.id}/students` };
+        if (!resourcePaths[resource] || resourceLoading[resource]) return;
+        const currentPagination = resourcePaginations[resource];
+        if (pageNumber < 1 || pageNumber > currentPagination.last_page) return;
+
+        resourceLoading[resource] = true;
+        try {
+            const response = await api.get(resourcePaths[resource], { params: { page: pageNumber } });
+            data.value[resource] = array(response);
+            resourcePaginations[resource] = response.data.meta;
+            resourcePages[resource] = pageNumber;
+        } catch (requestError) {
+            error.value = getErrorMessage(requestError);
+        } finally {
+            resourceLoading[resource] = false;
+        }
     }
 
     function setFile(event) {
@@ -509,14 +611,15 @@ export function usePageData(page) {
 
     watch(() => route.fullPath, () => {
         currentPage.value = 1;
+        resourcePages.students = 1;
         load();
     });
     onMounted(load);
 
     return {
         user, data, rows, lecturers, candidates, loading, error, fieldErrors, search, status, role,
-        currentPage, pagination, form, fields, mode, router, load, submit, login,
+        currentPage, pagination, paginationGroups, resourceLoading, form, fields, mode, router, load, submit, login,
         remove, enroll, removeStudent, readNotification, readAllNotifications, publishGrade,
-        download, preview, submitAssignment, goToPage, setFile,
+        download, preview, submitAssignment, goToPage, goToResourcePage, setFile,
     };
 }
