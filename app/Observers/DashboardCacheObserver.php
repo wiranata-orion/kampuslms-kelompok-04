@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Model;
 class DashboardCacheObserver
 {
     /** @var array<string, array<int, int|string>> */
-    private array $pendingStudents = [];
+    private static array $pendingStudents = [];
 
     public function created(Model $model): void
     {
@@ -49,7 +49,7 @@ class DashboardCacheObserver
     public function deleting(Model $model): void
     {
         if ($model instanceof Assignment) {
-            $this->pendingStudents[$this->key($model)] = $model->submissions()->pluck('user_id')->all();
+            self::$pendingStudents[$this->key($model)] = $model->submissions()->pluck('user_id')->all();
         } elseif ($model instanceof Course) {
             $enrolled = $model->students()->pluck('users.id')->all();
             $submitters = Submission::query()
@@ -57,7 +57,7 @@ class DashboardCacheObserver
                 ->pluck('user_id')
                 ->all();
 
-            $this->pendingStudents[$this->key($model)] = array_merge($enrolled, $submitters);
+            self::$pendingStudents[$this->key($model)] = array_merge($enrolled, $submitters);
         }
     }
 
@@ -101,8 +101,8 @@ class DashboardCacheObserver
     /** @return array<int, int|string> */
     private function pull(Model $model): array
     {
-        $ids = $this->pendingStudents[$this->key($model)] ?? [];
-        unset($this->pendingStudents[$this->key($model)]);
+        $ids = self::$pendingStudents[$this->key($model)] ?? [];
+        unset(self::$pendingStudents[$this->key($model)]);
 
         return $ids;
     }
