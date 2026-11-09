@@ -5,11 +5,13 @@ defineProps({
     title: { type: String, required: true },
     subtitle: { type: String, default: '' },
     loading: { type: Boolean, default: false },
+    keepContentWhileLoading: { type: Boolean, default: false },
     error: { type: String, default: '' },
     pagination: { type: Object, default: null },
+    paginationGroups: { type: Array, default: () => [] },
 });
 
-defineEmits(['page']);
+defineEmits(['page', 'page-group']);
 </script>
 
 <template>
@@ -19,13 +21,20 @@ defineEmits(['page']);
             <div class="actions"><slot name="actions" /></div>
         </header>
         <p v-if="error" class="error" role="alert">{{ error }}</p>
-        <p v-if="loading" class="panel" role="status">Memuat data…</p>
-        <slot v-if="!loading" />
-        <nav v-if="pagination && pagination.last_page > 1" class="pagination" aria-label="Pagination">
-            <button class="button button-quiet" :disabled="pagination.current_page <= 1" @click="$emit('page', pagination.current_page - 1)">Sebelumnya</button>
-            <span>Halaman {{ pagination.current_page }} dari {{ pagination.last_page }} · {{ pagination.total }} data</span>
-            <button class="button button-quiet" :disabled="pagination.current_page >= pagination.last_page" @click="$emit('page', pagination.current_page + 1)">Berikutnya</button>
+        <p v-if="loading && !keepContentWhileLoading" class="panel" role="status">Memuat data…</p>
+        <slot v-if="!loading || keepContentWhileLoading" />
+        <nav v-if="pagination" class="pagination" aria-label="Pagination">
+            <button class="button button-quiet" :disabled="loading || pagination.current_page <= 1" @click="$emit('page', pagination.current_page - 1)">Sebelumnya</button>
+            <span aria-current="page">Halaman {{ pagination.current_page }} dari {{ pagination.last_page }} · {{ pagination.total }} data</span>
+            <button class="button button-quiet" :disabled="loading || pagination.current_page >= pagination.last_page" @click="$emit('page', pagination.current_page + 1)">Selanjutnya</button>
         </nav>
+        <template v-for="group in paginationGroups" :key="group.key">
+            <nav class="pagination" :aria-label="`Pagination ${group.label}`">
+                <button class="button button-quiet" :disabled="group.loading || group.pagination.current_page <= 1" @click="$emit('page-group', group.pagination.current_page - 1, group.key)">Sebelumnya</button>
+                <span aria-current="page">{{ group.label }} · Halaman {{ group.pagination.current_page }} dari {{ group.pagination.last_page }} · {{ group.pagination.total }} data</span>
+                <button class="button button-quiet" :disabled="group.loading || group.pagination.current_page >= group.pagination.last_page" @click="$emit('page-group', group.pagination.current_page + 1, group.key)">Selanjutnya</button>
+            </nav>
+        </template>
     </section>
 </template>
 

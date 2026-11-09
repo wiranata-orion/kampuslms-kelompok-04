@@ -17,7 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 
-class AssignmentApiController extends Controller
+class AssignmentController extends Controller
 {
     public function show(Request $request, Assignment $assignment): AssignmentResource
     {
@@ -73,7 +73,8 @@ class AssignmentApiController extends Controller
         $submissions = $assignment->submissions()
             ->with(['assignment.course', 'student', 'grade.grader'])
             ->latest('submitted_at')
-            ->paginate(15);
+            ->orderByDesc('id')
+            ->paginate(20);
 
         return ApiResponse::collection($submissions, SubmissionResource::class, $request);
     }
@@ -101,7 +102,7 @@ class AssignmentApiController extends Controller
         // Cek apakah ada file baru yang diunggah
         if ($request->hasFile('file')) {
             $file = $request->file('file');
-            
+
             // Hapus file lama hanya JIKA file baru berhasil diunggah
             if ($existing?->file_path) {
                 Storage::disk('local')->delete($existing->file_path);

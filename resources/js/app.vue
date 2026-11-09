@@ -8,7 +8,7 @@
                 <RouterLink v-if="user.role === 'admin'" to="/courses">Mata kuliah</RouterLink>
                 <RouterLink v-if="user.role === 'admin'" to="/users">Pengguna</RouterLink>
                 <RouterLink v-if="user.role === 'mahasiswa'" to="/my/submissions">Pengumpulan saya</RouterLink>
-                <RouterLink to="/notifications">Notifikasi</RouterLink>
+
                 <RouterLink to="/settings">Pengaturan</RouterLink>
 
                 <!-- Lonceng Notifikasi & Dropdown Ringkas -->

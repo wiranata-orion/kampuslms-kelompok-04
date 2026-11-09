@@ -7,10 +7,13 @@ use App\Models\Assignment;
 use App\Models\Course;
 use App\Models\Grade;
 use App\Models\Material;
+use App\Models\Submission;
 use App\Models\User;
+use App\Policies\SubmissionPolicy;
 use App\Support\ApiResponse;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoAccountSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -139,7 +142,7 @@ class ApiContractTest extends TestCase
             'password' => 'secret-hash',
             'role' => 'dosen',
         ]);
-        $paginator = new LengthAwarePaginator(collect([$user]), 1, 15, 1);
+        $paginator = new LengthAwarePaginator(collect([$user]), 1, 20, 1);
         $response = ApiResponse::collection(
             $paginator,
             UserResource::class,
@@ -148,7 +151,7 @@ class ApiContractTest extends TestCase
         $body = $response->getData(true);
 
         $this->assertSame(['data', 'meta'], array_keys($body));
-        $this->assertSame(['current_page' => 1, 'last_page' => 1, 'total' => 1], $body['meta']);
+        $this->assertSame(['current_page' => 1, 'last_page' => 1, 'per_page' => 20, 'total' => 1], $body['meta']);
         $this->assertArrayNotHasKey('password', $body['data'][0]);
     }
 
@@ -186,7 +189,7 @@ class ApiContractTest extends TestCase
         $body = $response->json();
 
         $this->assertSame(['data', 'meta'], array_keys($body));
-        $this->assertSame(['current_page' => 1, 'last_page' => 1, 'total' => 1], $body['meta']);
+        $this->assertSame(['current_page' => 1, 'last_page' => 1, 'per_page' => 20, 'total' => 1], $body['meta']);
         $this->assertSame('API101', $body['data'][0]['code']);
         $this->assertSame($lecturer->id, $body['data'][0]['lecturer_id']);
         $this->assertSame($lecturer->id, $body['data'][0]['lecturer']['id']);
@@ -204,6 +207,123 @@ class ApiContractTest extends TestCase
         $this->getJson('/api/v1/courses/'.$otherCourse->id)
             ->assertForbidden()
             ->assertExactJson(['message' => 'Anda tidak memiliki akses ke sumber daya ini.']);
+    }
+
+    public function test_my_courses_returns_twenty_rows_and_pagination_metadata_per_page(): void
+    {
+        $lecturer = User::factory()->dosen()->create();
+        $student = User::factory()->create();
+
+        for ($index = 1; $index <= 21; $index++) {
+            $course = $this->createCourse($lecturer, 'PAGE'.str_pad((string) $index, 3, '0', STR_PAD_LEFT));
+            $course->students()->attach($student->id, ['enrolled_at' => now()]);
+        }
+
+        $this->actingAs($student, 'sanctum');
+        $firstPage = $this->getJson('/api/v1/my/courses?page=1')
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.per_page', 20)
+            ->assertJsonPath('meta.total', 21)
+            ->assertJsonCount(20, 'data');
+        $secondPage = $this->getJson('/api/v1/my/courses?page=2')
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonCount(1, 'data');
+
+        $firstPageIds = array_column($firstPage->json('data'), 'id');
+        $secondPageIds = array_column($secondPage->json('data'), 'id');
+        $this->assertSame([], array_intersect($firstPageIds, $secondPageIds));
+        $this->assertCount(21, array_unique(array_merge($firstPageIds, $secondPageIds)));
+    }
+
+    public function test_course_detail_and_detail_resources_work_for_all_authorized_roles(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $lecturer = User::factory()->dosen()->create();
+        $student = User::factory()->create();
+        $course = $this->createCourse($lecturer, 'DETAIL101');
+        $course->students()->attach($student->id, ['enrolled_at' => now()]);
+
+        foreach ([$admin, $lecturer, $student] as $user) {
+            $this->actingAs($user, 'sanctum')
+                ->getJson('/api/v1/courses/'.$course->id)
+                ->assertOk()
+                ->assertJsonPath('data.id', $course->id)
+                ->assertJsonPath('data.lecturer.id', $lecturer->id);
+
+            $this->getJson('/api/v1/courses/'.$course->id.'/assignments')
+                ->assertOk()
+                ->assertJsonPath('meta.per_page', 20);
+            $this->getJson('/api/v1/courses/'.$course->id.'/materials')
+                ->assertOk()
+                ->assertJsonPath('meta.per_page', 20);
+        }
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/courses/'.$course->id.'/students')
+            ->assertOk()
+            ->assertJsonPath('meta.per_page', 20);
+        $this->getJson('/api/v1/courses/'.$course->id.'/enrollments/candidates')
+            ->assertOk()
+            ->assertJsonPath('data.course.id', $course->id);
+    }
+
+    public function test_course_material_and_assignment_lists_paginate_independently(): void
+    {
+        $lecturer = User::factory()->dosen()->create();
+        $student = User::factory()->create();
+        $course = $this->createCourse($lecturer, 'PAGE201');
+        $course->students()->attach($student->id, ['enrolled_at' => now()]);
+
+        for ($index = 1; $index <= 21; $index++) {
+            $material = new Material;
+            $material->course_id = $course->id;
+            $material->uploaded_by = $lecturer->id;
+            $material->title = 'Materi '.$index;
+            $material->description = '';
+            $material->type = 'file';
+            $material->file_path = 'private/materials/'.$index.'.pdf';
+            $material->original_name = $index.'.pdf';
+            $material->file_size = 100;
+            $material->mime_type = 'application/pdf';
+            $material->save();
+            $this->createAssignment($course, $lecturer, 'published');
+        }
+
+        $this->actingAs($student, 'sanctum');
+        $firstMaterials = $this->getJson('/api/v1/courses/'.$course->id.'/materials?page=1')
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.per_page', 20)
+            ->assertJsonCount(20, 'data');
+        $secondMaterials = $this->getJson('/api/v1/courses/'.$course->id.'/materials?page=2')
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonCount(1, 'data');
+
+        $firstAssignments = $this->getJson('/api/v1/courses/'.$course->id.'/assignments?page=1')
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.per_page', 20)
+            ->assertJsonCount(20, 'data');
+        $secondAssignments = $this->getJson('/api/v1/courses/'.$course->id.'/assignments?page=2')
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonCount(1, 'data');
+
+        foreach ([
+            [$firstMaterials->json('data'), $secondMaterials->json('data')],
+            [$firstAssignments->json('data'), $secondAssignments->json('data')],
+        ] as [$firstPage, $secondPage]) {
+            $firstPageIds = array_column($firstPage, 'id');
+            $secondPageIds = array_column($secondPage, 'id');
+            $this->assertSame([], array_intersect($firstPageIds, $secondPageIds));
+            $this->assertCount(21, array_unique(array_merge($firstPageIds, $secondPageIds)));
+        }
     }
 
     public function test_material_and_assignment_collections_use_resources_and_hide_drafts(): void
@@ -462,6 +582,172 @@ class ApiContractTest extends TestCase
         $this->deleteJson('/api/v1/assignments/'.$assignmentId)
             ->assertForbidden();
         $this->assertDatabaseHas('assignments', ['id' => $assignmentId]);
+    }
+
+    
+    public function test_my_submissions_are_scoped_and_permissions_use_batched_relations(): void
+    {
+    	$lecturer = User::factory()->dosen()->create();
+    	$student = User::factory()->create();
+    	$otherStudent = User::factory()->create();
+
+    	$courses = collect([
+            $this->createCourse($lecturer, 'API302'),
+            $this->createCourse($lecturer, 'API304'),
+            $this->createCourse($lecturer, 'API305'),
+   	]);
+
+    	foreach ($courses as $course) {
+            $course->students()->attach(
+                [$student->id, $otherStudent->id],
+                ['enrolled_at' => now()]
+            );
+        }
+
+        $ownSubmissions = [];
+
+        for ($index = 0; $index < 10; $index++) {
+            $course = $courses[$index % $courses->count()];
+            $assignment = $this->createAssignment($course, $lecturer, 'published');
+
+            $submission = Submission::create([
+                'assignment_id' => $assignment->id,
+                'user_id' => $student->id,
+                'file_path' => "submissions/{$assignment->id}/answer.pdf",
+                'original_name' => 'answer.pdf',
+                'file_size' => 100,
+                'submitted_at' => now()->subMinutes($index),
+            ]);
+
+            $ownSubmissions[] = $submission;
+
+            if ($index === 1) {
+                Grade::create([
+                    'submission_id' => $submission->id,
+                    'graded_by' => $lecturer->id,
+                    'score' => 80,
+                    'graded_at' => now(),
+                ]);
+            }
+        }
+
+        $otherAssignment = $this->createAssignment($courses[0], $lecturer, 'published');
+
+        $otherSubmission = Submission::create([
+            'assignment_id' => $otherAssignment->id,
+            'user_id' => $otherStudent->id,
+            'file_path' => "submissions/{$otherAssignment->id}/other.pdf",
+            'original_name' => 'other.pdf',
+            'file_size' => 100,
+            'submitted_at' => now(),
+        ]);
+
+        $queries = ['grades' => [], 'course_user' => []];
+
+        DB::listen(function (QueryExecuted $query) use (&$queries): void {
+            $sql = strtolower($query->sql);
+
+            if (preg_match('/\bfrom\s+[`"]?grades[`"]?\b/', $sql)) {
+                $queries['grades'][] = $query->sql;
+            }
+
+            if (str_contains($sql, 'course_user')) {
+                $queries['course_user'][] = $query->sql;
+            }
+        });
+
+        $response = $this->actingAs($student, 'sanctum')
+            ->getJson('/api/v1/my/submissions?page=1')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 10);
+
+        $rows = collect($response->json('data'))->keyBy('id');
+
+        $this->assertCount(10, $rows);
+
+        $this->assertEqualsCanonicalizing(
+            array_map(fn (Submission $submission) => $submission->id, $ownSubmissions),
+            $rows->keys()->all(),
+        );
+
+        $this->assertArrayNotHasKey($otherSubmission->id, $rows->all());
+        $this->assertTrue($rows[$ownSubmissions[0]->id]['permissions']['update']);
+        $this->assertFalse($rows[$ownSubmissions[1]->id]['permissions']['update']);
+
+        $this->assertSame(1, count($queries['grades']), 'Grades SQL: '.json_encode($queries['grades']));
+        $this->assertSame(1, count($queries['course_user']), 'Course membership SQL: '.json_encode($queries['course_user']));
+
+        $policy = app(SubmissionPolicy::class);
+
+        $this->assertTrue($policy->update($student, $ownSubmissions[0]->fresh()));
+        $this->assertFalse($policy->update($student, $ownSubmissions[1]->fresh()));
+    }
+
+    public function test_submission_replacement_requires_an_ungraded_enrolled_owner(): void
+    {
+        Storage::fake('local');
+        $lecturer = User::factory()->dosen()->create();
+        $student = User::factory()->create();
+        $otherStudent = User::factory()->create();
+        $course = $this->createCourse($lecturer, 'API303');
+        $course->students()->attach([$student->id, $otherStudent->id], ['enrolled_at' => now()]);
+        $assignment = $this->createAssignment($course, $lecturer, 'published');
+        $submission = Submission::create([
+            'assignment_id' => $assignment->id,
+            'user_id' => $student->id,
+            'file_path' => 'submissions/answer.pdf',
+            'original_name' => 'answer.pdf',
+            'file_size' => 100,
+            'submitted_at' => now(),
+        ]);
+
+        $gradedAssignment = $this->createAssignment($course, $lecturer, 'published');
+        $gradedSubmission = Submission::create([
+            'assignment_id' => $gradedAssignment->id,
+            'user_id' => $student->id,
+            'file_path' => 'submissions/graded.pdf',
+            'original_name' => 'graded.pdf',
+            'file_size' => 100,
+            'submitted_at' => now(),
+        ]);
+        Grade::create([
+            'submission_id' => $gradedSubmission->id,
+            'graded_by' => $lecturer->id,
+            'score' => 80,
+            'graded_at' => now(),
+        ]);
+
+        $this->actingAs($student, 'sanctum')
+            ->post('/api/v1/assignments/'.$assignment->id.'/submissions', [
+                'file' => UploadedFile::fake()->create('replacement.pdf', 10, 'application/pdf'),
+            ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJsonPath('data.original_name', 'replacement.pdf');
+
+        $this->post('/api/v1/assignments/'.$gradedAssignment->id.'/submissions', [
+            'file' => UploadedFile::fake()->create('replacement.pdf', 10, 'application/pdf'),
+        ], ['Accept' => 'application/json'])->assertForbidden();
+
+        $this->actingAs($otherStudent, 'sanctum')
+            ->getJson('/api/v1/submissions/'.$submission->id)
+            ->assertForbidden();
+        $this->post('/api/v1/assignments/'.$assignment->id.'/submissions', [
+            'file' => UploadedFile::fake()->create('other.pdf', 10, 'application/pdf'),
+        ], ['Accept' => 'application/json'])->assertCreated();
+        $this->assertDatabaseHas('submissions', [
+            'id' => $submission->id,
+            'user_id' => $student->id,
+            'original_name' => 'replacement.pdf',
+        ]);
+
+        $course->students()->detach($student->id);
+        $this->actingAs($student, 'sanctum')
+            ->post('/api/v1/assignments/'.$assignment->id.'/submissions', [
+                'file' => UploadedFile::fake()->create('unenrolled.pdf', 10, 'application/pdf'),
+            ], ['Accept' => 'application/json'])->assertForbidden();
+        $this->getJson('/api/v1/my/submissions?page=1')
+            ->assertOk()
+            ->assertJsonPath('data.0.permissions.update', false);
     }
 
     public function test_notifications_are_limited_to_the_authenticated_user_and_can_be_read(): void
