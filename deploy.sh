@@ -3,7 +3,7 @@ set -e
 
 php artisan down
 
-git pull origin main
+git pull origin production
 composer install --no-dev --optimize-autoloader
 npm ci && npm run build
 php artisan migrate --force
