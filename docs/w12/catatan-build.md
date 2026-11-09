@@ -185,3 +185,5 @@ Error yang terjadi saat proses deployment:
 3. ![Masalah bootstrap](<Screenshot 2026-11-09 190847.png>)
 ![Solusi bootstrap](<Screenshot 2026-11-09 191427.png>)
 4. ![Masalah server](<Screenshot 2026-11-09 191905.png>)
+![Solusi error 500](<Screenshot 2026-11-09 210247.png>) 
+Belum menjalani `npm run build` dan membiarkan public/build di abaikan
