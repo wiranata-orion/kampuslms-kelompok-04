@@ -51,10 +51,9 @@ killasgroup=true\n\
 user=root\n\
 numprocs=1\n\
 redirect_stderr=true\n\
-stdout_logfile=/var/www/html/storage/logs/worker.log\n\
-environment=DB_CONNECTION="mysql"' > /etc/supervisor/conf.d/laravel-worker.conf
+stdout_logfile=/var/www/html/storage/logs/worker.log' > /etc/supervisor/conf.d/laravel-worker.conf
 
 EXPOSE 80 8080
 
-# 9. Script startup: pastikan hanya mpm_prefork aktif, atur PORT dinamis Railway, clear cache, jalankan migrasi & seed, lalu jalankan Apache# 9. Script startup: pastikan hanya mpm_prefork aktif, atur PORT dinamis Railway, clear cache, jalankan migrasi & seed, jalankan Supervisor, lalu jalankan Apache
-CMD ["sh", "-c", "rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.* && export PORT=\"${PORT:-8080}\" && sed -i \"s/Listen .*/Listen $PORT/\" /etc/apache2/ports.conf && sed -i \"s/<VirtualHost \\*:.*>/<VirtualHost \\*:$PORT>/\" /etc/apache2/sites-available/000-default.conf && php artisan config:clear && php artisan route:clear && php artisan view:clear && (php artisan migrate --force || true) && (php artisan db:seed --force || true) && service supervisor start && exec apache2-foreground"]
+# 9. Script startup
+CMD ["sh", "-c", "rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.* && export PORT=\"${PORT:-8080}\" && sed -i \"s/Listen .*/Listen $PORT/\" /etc/apache2/ports.conf && sed -i \"s/<VirtualHost \\*:.*>/<VirtualHost \\*:$PORT>/\" /etc/apache2/sites-available/000-default.conf && php artisan config:clear && php artisan route:clear && php artisan view:clear && (php artisan migrate --force || true) && (php artisan db:seed --force || true) && echo \"environment=DB_CONNECTION=\\\"$DB_CONNECTION\\\",DB_HOST=\\\"$DB_HOST\\\",DB_PORT=\\\"$DB_PORT\\\",DB_DATABASE=\\\"$DB_DATABASE\\\",DB_USERNAME=\\\"$DB_USERNAME\\\",DB_PASSWORD=\\\"$DB_PASSWORD\\\"\" >> /etc/supervisor/conf.d/laravel-worker.conf && service supervisor start && exec apache2-foreground"]
