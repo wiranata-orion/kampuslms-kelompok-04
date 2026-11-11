@@ -51,7 +51,8 @@ killasgroup=true\n\
 user=root\n\
 numprocs=1\n\
 redirect_stderr=true\n\
-stdout_logfile=/var/www/html/storage/logs/worker.log' > /etc/supervisor/conf.d/laravel-worker.conf
+stdout_logfile=/var/www/html/storage/logs/worker.log\n\
+environment=DB_CONNECTION="mysql"' > /etc/supervisor/conf.d/laravel-worker.conf
 
 EXPOSE 80 8080
 
