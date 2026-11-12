@@ -50,7 +50,7 @@ autorestart=true\n\
 stopasgroup=true\n\
 killasgroup=true\n\
 user=root\n\
-numprocs=1\n\
+numprocs=2\n\
 redirect_stderr=true\n\
 stdout_logfile=/var/www/html/storage/logs/worker.log' > /etc/supervisor/conf.d/laravel-worker.conf
 
