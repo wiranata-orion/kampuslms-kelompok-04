@@ -112,5 +112,10 @@ Route::prefix('v1')->name('api.v1.')->middleware($apiRateLimitMiddleware)->group
         Route::get('/submissions/{submission}/download', [SubmissionController::class, 'download'])->name('submissions.download');
         Route::get('/submissions/{submission}/grade', [SubmissionController::class, 'studentGrade'])->name('submissions.student-grade');
         Route::get('/grades/{grade}', [SubmissionController::class, 'showGrade'])->name('grades.show');
+
+        // Testing debug
+        // Route::get('/test-error', function () { 
+        //     throw new Exception('Testing Debug Mode'); 
+        //     });
     });
 });
