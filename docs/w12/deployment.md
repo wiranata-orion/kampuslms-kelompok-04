@@ -210,7 +210,7 @@ Jika Anda ingin memeriksa migrate & seed database sudah berjalan atau tidak:
 ![Solusi error 500](<Screenshot 2026-11-09 210247.png>) 
 Belum menjalani `npm run build` dan membiarkan public/build di abaikan
 4. ![Masalah layar putih](<Screenshot 2026-11-09 213109.png>)
-![Solusi error layar putih](image.png)
+![Solusi error layar putih](<WhatsApp Image 2026-11-09 at 21.30.17.jpeg>)
 Railway ngeblok asset frontend
 
 ---

@@ -123,8 +123,25 @@ memverifikasi skenario berikut:
 - Berkas fisik dihapus secara otomatis saat record dihapus via Eloquent deleting event.
 - Dosen lain tidak dapat memberi atau mempublikasikan nilai; mahasiswa hanya dapat melihat nilainya sendiri setelah dosen mempublikasikannya.
 
-Jalankan tes terfokus dengan:
+Jalankan tes terfokus lokal dengan:
 
 ```sh
-./scripts/test-authz.sh
+./scripts/test-authz.sh --local
 ```
+
+Skrip yang sama juga menyediakan smoke test read-only terhadap production.
+Skrip otomatis login memakai akun demo dari seeder dengan password `password`,
+menemukan ID course dan draft assignment yang diperlukan, serta tidak memiliki
+status `SKIP`. Jika request atau data yang diperlukan tidak tersedia, pengujian
+langsung gagal.
+
+```sh
+AUTHZ_BASE_URL=https://lacikampus-production.up.railway.app \
+  ./scripts/test-authz.sh
+```
+
+Environment variable `AUTHZ_*` tetap dapat dipakai untuk mengganti password,
+token, atau ID saat diperlukan. Skrip tidak membuat, mengubah, menghapus, atau
+mengunggah data. Empat security header (`Strict-Transport-Security`,
+`X-Content-Type-Options`, `X-Frame-Options`, dan `Content-Security-Policy`)
+merupakan check wajib.
