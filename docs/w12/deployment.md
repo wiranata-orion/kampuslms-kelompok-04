@@ -2,6 +2,17 @@
 
 Panduan ini berisi langkah-langkah praktis untuk mendeploy aplikasi Laravel 12 **KampusLMS** bersama database **MySQL bawaan Railway** secara terintegrasi dalam satu project, lengkap dengan solusi untuk berbagai kendala (troubleshooting) yang sering terjadi di lapangan.
 
+Spesifikasi server:
+- Public networking: https://lacikampus-production.up.railway.app
+- maximum vCPU: 2 vCPU
+- maximum Memory: 1 GB
+
+| Role | Email | Password |
+| :--- | :--- | :--- |
+| **Admin** | `admin@kampuslms.test` | `test1234` |
+| **Dosen** | `dosen@kampuslms.test` | `test1234` |
+| **Mahasiswa** | `mahasiswa@kampuslms.test` | `test1234` |
+
 ---
 
 ## Daftar Isi
@@ -13,7 +24,7 @@ Panduan ini berisi langkah-langkah praktis untuk mendeploy aplikasi Laravel 12 *
 6. [Langkah 6: Menghasilkan Domain Publik (HTTPS)](#langkah-6-menghasilkan-domain-publik-https)
 7. [Langkah 7: Migrasi & Seeding Otomatis Database](#langkah-7-migrasi--seeding-otomatis-database)
 8. [Langkah 8: Pengujian Aplikasi Live & Akun Demo](#langkah-8-pengujian-aplikasi-live--akun-demo)
-9. [Troubleshooting: Kasus-Kasus Error yang Sering Terjadi & Solusinya](#-troubleshooting-kasus-kasus-error-yang-sering-terjadi--solusinya)
+9. [Troubleshooting: Kasus-Kasus Error yang Terjadi & Solusinya](#-troubleshooting-kasus-kasus-error-yang-terjadi--solusinya)
 
 ---
 
@@ -154,10 +165,7 @@ Secara default, service di Railway belum memiliki URL publik sampai Anda mengakt
 1. Masih di service aplikasi **KampusLMS**, buka tab **"Settings"**.
 2. Gulir ke bawah hingga bagian **"Networking"** $\rightarrow$ **"Public Networking"**.
 3. Klik tombol **"Generate Domain"**.
-4. Jika muncul kotak dialog *"Enter the port your app is listening on"*:
-   - Masukkan angka: **`8080`** (port standar yang sudah dikonfigurasi di `Dockerfile`).
-   - Klik tombol **"Generate Domain"**.
-5. Railway akan membuatkan domain gratis berekstensi `.up.railway.app` lengkap dengan sertifikat SSL/HTTPS aktif (contoh: `kampuslms-production.up.railway.app`).
+4. Railway akan membuatkan domain gratis berekstensi `.up.railway.app` lengkap dengan sertifikat SSL/HTTPS aktif (contoh: `kampuslms-production.up.railway.app`).
 
 ![Screenshot domain yang di generate](<Screenshot 2026-11-09 190359.png>)
 
@@ -168,8 +176,9 @@ Secara default, service di Railway belum memiliki URL publik sampai Anda mengakt
 Di file `Dockerfile` terbaru kita, perintah migrasi dan seeding data demo sudah otomatis dieksekusi saat container pertama kali menyala:
 ```bash
 php artisan migrate --force && 
-php artisan db:seed --force
+php artisan db:seed --force # hanya untuk demo; JANGAN di aplikasi sungguhan
 ```
+`--force` diperlukan karena di produksi Laravel meminta konfirmasi sebelum migrasi berjalan. Dalam skrip deployment yang tidak interaktif, pertanyaan itu tidak bisa dijawab sehingga perintahnya dibatalkan. Ini pengaman agar Anda tidak sengaja menjalankan migrate:fresh dan menghapus data sungguhan.
 
 Jika Anda ingin memeriksa migrate & seed database sudah berjalan atau tidak:
 1. Di kanvas sebelah kiri, klik kotak MySQL (service database Anda yang berwarna hijau).
@@ -178,12 +187,100 @@ Jika Anda ingin memeriksa migrate & seed database sudah berjalan atau tidak:
 4. Klik tabel users → Anda akan melihat akun admin@kampus.id, dosen@kampus.id, dan mahasiswa@kampus.id.
 5. Klik tabel lainnya anda akan melihat data lainnya.
 
+![Screenshot database](<Screenshot 2026-11-12 130233.png>)
+![Screenshot tabel users](<Screenshot 2026-11-12 130357.png>)
 
-Error yang terjadi saat proses deployment:
-1. ![alt text](<Screenshot 2026-11-09 175444.png>)
-2. ![alt text](<Screenshot 2026-11-09 184857.png>)
-3. ![Masalah bootstrap](<Screenshot 2026-11-09 190847.png>)
+---
+
+## Langkah 8: Pengujian Aplikasi Live & Akun Demo
+
+1. Buka domain yang dihasilkan di Langkah 6 pada browser: https://lacikampus-production.up.railway.app
+2. Pastikan halaman website sesuai dengan yang anda buat di local dan testing fungsi fungsi yang ada di dalamnya apakah sudah sesuai atau belum, silahkan debugging sesuai dengan fitur website masing masing
+
+![Tampilan sesuai dengan yang di local](<Screenshot 2026-11-12 130753.png>)
+
+---
+
+## 9. Troubleshooting: Kasus-Kasus Error yang Terjadi & Solusinya:
+1. ![Dockerfile tidak terbaca karena kesalahan huruf kapital](<Screenshot 2026-11-09 175444.png>)
+![Solusi Dockerfile](<Screenshot 2026-11-09 184857.png>)
+2. ![Masalah bootstrap](<Screenshot 2026-11-09 190847.png>)
 ![Solusi bootstrap](<Screenshot 2026-11-09 191427.png>)
-4. ![Masalah server](<Screenshot 2026-11-09 191905.png>)
+3. ![Masalah server](<Screenshot 2026-11-09 191905.png>)
 ![Solusi error 500](<Screenshot 2026-11-09 210247.png>) 
 Belum menjalani `npm run build` dan membiarkan public/build di abaikan
+4. ![Masalah layar putih](<Screenshot 2026-11-09 213109.png>)
+![Solusi error layar putih](image.png)
+Railway ngeblok asset frontend
+
+---
+
+## 10. Pengujian kode produksi
+
+1. install `jq` di windows powershell, sebuah alat baris perintah untuk membaca dan mengolah data JSON. Untuk jalanin `test-api.sh` perlu ngambil informasi dari respons API--misalnya token login dan ID course.
+```shell
+winget install jqlang.jq
+jq --version
+```
+where.exe jq -> salin lokasi file -> export PATH="$PATH:<--file lokasi yang disalin-->" -> jq --version
+
+2. Karen `test-authz.sh` mempunyai perintah php, maka git bash memerlukan perintah php. Anda bisa mendapatkannya dengan export file php.
+where.exe php -> salin lokasi file -> export PATH="$PATH:<--file lokasi yang disalin-->" -> php -v
+
+hasil dari pengujian authz:
+```bash
+Runtime:       PHP 8.4.27
+
+.........                                                           9 / 9 (100%)
+
+Time: 01:04.581, Memory: 54.00 MB
+```
+
+3. Memastikan file `.env` tidak bisa diakses publik
+```shell
+curl.exe -I https://lacikampus-production.up.railway.app/.env
+HTTP/1.1 403 Forbidden
+Content-Type: text/html; charset=iso-8859-1
+Date: Thu, 12 Nov 2026 04:01:58 GMT
+Server: railway-hikari
+x-railway-request-id: ruiKwiYASmuyaug0CYBc-A
+x-hikari-trace: sin1.d1nj
+x-railway-edge: sin1
+Connection: keep-alive
+```
+
+4. Memastikan file `storage/logs/laravel.logs` tidak bisa diakses publik
+```shell
+curl.exe -I https://lacikampus-production.up.railway.app/storage/logs/laravel/log
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: text/html; charset=utf-8
+Date: Thu, 12 Nov 2026 04:13:11 GMT
+Server: railway-hikari
+Set-Cookie: XSRF-TOKEN=eyJpdiI6IjU5NlZsTXF2cWNONlI5ek9TbU5FM0E9PSIsInZhbHVlIjoidjI1VmtMb0t4SnBYQ2tsSnlVbmhjdWFOOXdEMVlEM09Ka2tmNkRyZDJKeUxvMUliNFNIQXo5WmNYNzhtY1NQZXU3b1NtTmlTenpQTlJTdWhsNG9NaWZqUGNXUThnUStUNU1ZelpLRzgrS1p0ZHJrajV2MDE1WUh3L3dPSG1BSXIiLCJtYWMiOiIyMmYwYTQ2YzhjODI1NGRiYmY1ZGFjMDU4YzkwYzgwMTFjZGM3MGU2ZTVlOGVkYTMzZjRiYWYxNTNkNjBlNTU0IiwidGFnIjoiIn0%3D; expires=Thu, 12 Nov 2026 06:13:11 GMT; Max-Age=7200; path=/; secure; samesite=lax
+Set-Cookie: lacikampus_session=eyJpdiI6IlhveEs2OHdpMHhjdWsyaW9UK1ZZNUE9PSIsInZhbHVlIjoiWFlVYlA1NXJlUzFlaTBaWTlIY0hML3NsKyszS1FySDRtdVlndGh0bXNvaFA1ZHM2aXFFcVhZSGk2eitoaVp1emNVV29qQXZPendqNVRKS1VuQ3Naa0xRc3p5Q1NLVWx5QUpkb0VjZ2RraSthMkVuaUd2NGsxdHVhc1ZXRERXbk4iLCJtYWMiOiI4Y2MwZTViMGU1MzI4MzU4M2YyNTk3ZmNiNWNiZDc3ZGEwOWUyZjM4YTZhMzZhMjA5ODI0MzdlMDU0MzdmOTg5IiwidGFnIjoiIn0%3D; expires=Thu, 12 Nov 2026 06:13:11 GMT; Max-Age=7200; path=/; secure; httponly; samesite=lax
+vary: Accept-Encoding
+x-powered-by: PHP/8.4.27
+x-railway-request-id: GD-XUIYnSxqPKnB8LPU1MQ
+x-hikari-trace: sin1.d1nj
+x-railway-edge: sin1
+Connection: keep-alive
+```
+
+5. Memastikan file `composer.json` tidak bisa diakses publik
+```shell
+curl.exe -I https://lacikampus-production.up.railway.app/composer.json
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: text/html; charset=utf-8
+Date: Thu, 12 Nov 2026 04:14:43 GMT
+Server: railway-hikari
+Set-Cookie: XSRF-TOKEN=eyJpdiI6Inl4MW85cHEvVEh2VW5lWXVtV0sveUE9PSIsInZhbHVlIjoiSFhKL3ZaVGFLdUJENHl2Q0REN3lyR01UWHhDaHJZNVdrejQwWlVVb1JabUxxQ2lYOFc4RVphWDJkdjFEb0Jwb1IzU0duOTVWZFJ0ZldqVkYzQXJ4OGNpZWNPb3ZKSk42aHZqcFJrTzR0L3lMdkdNb1Fldm9RNWMrdDhzMHMyTHkiLCJtYWMiOiI3OGRkZDZmZmY1MjgyZWEwOWUwYThhMzdmMzNhNGU2OTE1ZGUxYjQzYTM2MTE3ZDhlZmMyZmU2N2E2ZWY1M2ZlIiwidGFnIjoiIn0%3D; expires=Thu, 12 Nov 2026 06:14:43 GMT; Max-Age=7200; path=/; secure; samesite=lax
+Set-Cookie: lacikampus_session=eyJpdiI6IldMdUlIWnI1bGFtSWM2QXE5Y2Fwemc9PSIsInZhbHVlIjoiazE3eXBuMDd5bGVQVExyRmtRUUZRZ3IwbXFNamd2OGxoaVpXb0xSSFRGRVpBNE9rbmdoTll1Zm1qclRBcEFYUkk3ZHdWMW1KSmNqTnJ4c2c4UVBTYlprbEZJRDNlZTVNQi9mSCt4ajdXMk9tdE1PYXBFcStEYzM4Z2pPU2xkYjAiLCJtYWMiOiI1MjliYjVkZDNhOWM5MjNhN2RjZjVkYWNiNDJiN2U0MzI5YzJmZDA5Mzk4YmJlNWYxOTRkNzYwNjI3ODZiNjMzIiwidGFnIjoiIn0%3D; expires=Thu, 12 Nov 2026 06:14:43 GMT; Max-Age=7200; path=/; secure; httponly; samesite=lax
+vary: Accept-Encoding
+x-powered-by: PHP/8.4.27
+x-railway-request-id: r2aMPrNYTouOk4urlt7tkg
+x-hikari-trace: sin1.tr00
+x-railway-edge: sin1
+Connection: keep-alive
+```
