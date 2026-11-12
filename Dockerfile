@@ -19,6 +19,7 @@ RUN a2enmod rewrite \
     && rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.* \
     && a2enmod mpm_prefork \
     && sed -ri -e 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
+    && printf '\n<LocationMatch "/\.">\n    Require all denied\n</LocationMatch>\n' >> /etc/apache2/apache2.conf
 
 # 3. Atur Document Root ke /var/www/html/public
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
