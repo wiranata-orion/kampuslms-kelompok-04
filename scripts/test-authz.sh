@@ -181,11 +181,17 @@ expect_status "Token mahasiswa dapat membaca notifikasi" GET /notifications "$ST
 
 request GET "$API_BASE/courses" "$LECTURER_TOKEN" "" lecturer_courses
 request GET "$API_BASE/courses" "$STUDENT_TOKEN" "" student_courses
+request GET "$API_BASE/me" "$LECTURER_TOKEN" "" lecturer_profile
+request GET "$API_BASE/courses" "$ADMIN_TOKEN" "" admin_courses
 COURSE_ID="${AUTHZ_COURSE_ID:-$(jq -er '.data[0].id' "$TEMP_DIR/lecturer_courses.body")}"
+LECTURER_ID="$(jq -er '.data.id' "$TEMP_DIR/lecturer_profile.body")"
 STUDENT_COURSE_IDS="$(jq -c '[.data[].id]' "$TEMP_DIR/student_courses.body")"
 OTHER_COURSE_ID="${AUTHZ_OTHER_COURSE_ID:-$(jq -er --argjson student_ids "$STUDENT_COURSE_IDS" \
     '.data[] | select((.id as $id | $student_ids | index($id)) == null) | .id' \
     "$TEMP_DIR/lecturer_courses.body" | head -n 1)}"
+OTHER_LECTURER_COURSE_ID="${AUTHZ_OTHER_LECTURER_COURSE_ID:-$(jq -er --argjson lecturer_id "$LECTURER_ID" \
+    '.data[] | select(.lecturer_id != $lecturer_id) | .id' \
+    "$TEMP_DIR/admin_courses.body" | head -n 1)}"
 
 request GET "$API_BASE/courses/$COURSE_ID/assignments" "$LECTURER_TOKEN" "" course_assignments
 DRAFT_ASSIGNMENT_ID="${AUTHZ_DRAFT_ASSIGNMENT_ID:-$(jq -er \
@@ -197,6 +203,11 @@ expect_status "Mahasiswa ditolak dari course lain" GET "/courses/$OTHER_COURSE_I
 expect_status "Mahasiswa ditolak dari roster course lain" GET "/courses/$OTHER_COURSE_ID/students" "$STUDENT_TOKEN" 403 404
 expect_status "Mahasiswa ditolak dari draft assignment" GET "/assignments/$DRAFT_ASSIGNMENT_ID" "$STUDENT_TOKEN" 403 404
 expect_status "Mahasiswa ditolak membaca user lain" GET "/users/$OTHER_USER_ID" "$STUDENT_TOKEN" 403 404
+expect_status "Dosen ditolak dari course milik dosen lain" GET "/courses/$OTHER_LECTURER_COURSE_ID" "$LECTURER_TOKEN" 403 404
+expect_status "Dosen ditolak dari roster course milik dosen lain" GET "/courses/$OTHER_LECTURER_COURSE_ID/students" "$LECTURER_TOKEN" 403 404
+expect_status "Dosen ditolak membaca daftar user" GET /users "$LECTURER_TOKEN" 403
+expect_status "Dosen ditolak membaca daftar lecturer" GET /lecturers "$LECTURER_TOKEN" 403
+expect_status "Dosen ditolak mengubah user lain" PUT "/users/$OTHER_USER_ID" "$LECTURER_TOKEN" 403 404
 expect_status "Dosen pengampu dapat membaca roster course" GET "/courses/$COURSE_ID/students" "$LECTURER_TOKEN" 200
 expect_status "Dosen pengampu dapat membaca kandidat enrollment" GET "/courses/$COURSE_ID/enrollments/candidates" "$LECTURER_TOKEN" 200
 expect_status "Admin dapat membaca daftar user" GET /users "$ADMIN_TOKEN" 200
