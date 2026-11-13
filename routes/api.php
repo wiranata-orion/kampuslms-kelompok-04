@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\CourseEnrollmentController;
 use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\DirectResetPasswordController;
 use App\Http\Controllers\Api\GradeSummaryController;
 use App\Http\Controllers\Api\MaterialController;
 use App\Http\Controllers\Api\NotificationController;
@@ -19,8 +18,6 @@ Route::prefix('v1')->name('api.v1.')->middleware($apiRateLimitMiddleware)->group
 
     // ── Guest / Public Auth Routes ───────────────────────────────────────────
     Route::prefix('auth')->name('auth.')->group(function () {
-        Route::post('/check-user', [DirectResetPasswordController::class, 'checkUser'])->name('check-user');
-        Route::post('/reset-password', [DirectResetPasswordController::class, 'resetPassword'])->name('reset-password');
         Route::post('/login', [AuthController::class, 'login'])
             ->middleware('throttle:100,1')
             ->name('login');
