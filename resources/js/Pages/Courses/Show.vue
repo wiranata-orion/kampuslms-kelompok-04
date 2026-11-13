@@ -19,6 +19,7 @@ const page = usePageData('course');
             <div class="actions course-navigation">
                 <RouterLink class="button" :to="`/courses/${page.data.value.id}/materials`">Materi</RouterLink>
                 <RouterLink class="button" :to="`/courses/${page.data.value.id}/assignments`">Tugas</RouterLink>
+                <RouterLink class="button button-quiet" :to="`/courses/${page.data.value.id}/schedule`">Jadwal & presensi</RouterLink>
             </div>
             <section v-if="page.user.value?.role === 'admin'" class="enrollment"><h2>Peserta mata kuliah</h2>
                 <p v-if="page.resourceLoading.students" role="status">Memuat peserta…</p><ul v-else><li v-for="student in page.data.value.students" :key="student.id">{{ student.name }} · {{ student.nim_nip || student.email }} <button class="text-button" @click="page.removeStudent(student)">Keluarkan</button></li></ul>

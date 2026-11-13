@@ -435,7 +435,8 @@ export function usePageData(page) {
             const response = await api.post('/auth/login', { ...form, device_name: 'kampuslms-web' });
             setToken(response.data.data.token);
             user.value = response.data.data.user;
-            await router.push('/dashboard');
+            const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '';
+            await router.push(redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/dashboard');
         } catch (requestError) {
             error.value = getErrorMessage(requestError);
         }
