@@ -30,6 +30,7 @@ class SubmissionController extends Controller
             ->with([
                 'assignment.course.students' => fn ($query) => $query->whereKey($studentId),
                 'grade',
+                'grade.grader',
             ])
             ->latest('submitted_at')
             ->orderByDesc('id')

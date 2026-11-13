@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router';
 import About from './Pages/About.vue';
 import Welcome from './Pages/Welcome.vue';
 import Login from './Pages/Auth/Login.vue';
-import ForgotPassword from './Pages/Auth/ForgotPassword.vue';
 import Dashboard from './Pages/Dashboard/Index.vue';
 import CourseIndex from './Pages/Courses/Index.vue';
 import MyCourses from './Pages/Courses/Mine.vue';
@@ -39,7 +38,6 @@ const router = createRouter({
         { path: '/welcome', name: 'welcome', component: Welcome, meta: { public: true } },
         { path: '/403', name: 'forbidden', component: Forbidden, meta: { public: true } },
         { path: '/login', name: 'login', component: Login, meta: { guest: true } },
-        { path: '/forgot-password', name: 'forgot-password', component: ForgotPassword, meta: { public: true } },
         { path: '/', redirect: '/dashboard' },
         { path: '/dashboard', name: 'dashboard', component: Dashboard },
         { path: '/settings', alias: ['/profile', '/pengaturan'], name: 'settings', component: Settings },

@@ -9,7 +9,9 @@ use App\Models\User;
 use App\Support\DashboardCache;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use RuntimeException;
 use Tests\TestCase;
@@ -111,14 +113,20 @@ class DashboardCacheTest extends TestCase
 
     public function test_cascade_hapus_assignment_membersihkan_cache_mahasiswa(): void
     {
+        Storage::fake('local');
         $student = User::factory()->create();
         $submission = Submission::factory()->create(['user_id' => $student->id]);
+        $filePath = UploadedFile::fake()->create('assignment.pdf', 10, 'application/pdf')
+            ->store('submissions/'.$submission->assignment_id, 'local');
+        $submission->update(['file_path' => $filePath]);
         $this->assertSame(1, $this->stats($student)['total_submissions']);
+        Storage::disk('local')->assertExists($filePath);
 
         // Submission dihapus oleh cascadeOnDelete di database (tanpa event Submission).
         $submission->assignment->delete();
 
         $this->assertSame(0, $this->stats($student)['total_submissions']);
+        Storage::disk('local')->assertMissing($filePath);
     }
 
     public function test_cascade_hapus_course_membersihkan_cache_dosen_dan_mahasiswa(): void

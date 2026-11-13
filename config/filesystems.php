@@ -34,8 +34,9 @@ return [
             'driver' => 'local',
             'root' => storage_path('app/private'),
             'serve' => true,
-            'throw' => false,
-            'report' => false,
+            // Storage failures must abort the request instead of being saved as file_path = 0.
+            'throw' => true,
+            'report' => true,
         ],
 
         'public' => [

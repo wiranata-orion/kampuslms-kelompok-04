@@ -38,12 +38,16 @@ class SendNewAssignmentNotifications implements ShouldQueue
      */
     public function handle(AssignmentPublished $event): void
     {
-        $event->assignment->loadMissing('course.students');
+        $assignment = $event->assignment->loadMissing('course.students');
 
-        $students = $event->assignment->course->students;
+        if ($assignment->status !== 'published') {
+            return;
+        }
+
+        $students = $assignment->course->students;
 
         if ($students && $students->isNotEmpty()) {
-            Notification::send($students, new NewAssignmentNotification($event->assignment));
+            Notification::send($students, new NewAssignmentNotification($assignment));
         }
     }
 
