@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'timezone' => 'Asia/Makassar',
+
 //TTL (detik) hanyalah batas maksimal basi. Pembersihan utama berbasis event (lihat App\Observers\DashboardCacheObserver). Hanya blok "stats" yang di-cache.
     
     'cache' => [

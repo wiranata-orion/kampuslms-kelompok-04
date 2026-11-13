@@ -6,6 +6,7 @@ import Dashboard from './Pages/Dashboard/Index.vue';
 import CourseIndex from './Pages/Courses/Index.vue';
 import MyCourses from './Pages/Courses/Mine.vue';
 import CourseShow from './Pages/Courses/Show.vue';
+import CourseSchedule from './Pages/Courses/Schedule.vue';
 import CourseForm from './Pages/Courses/Form.vue';
 import CourseAssignments from './Pages/Assignments/Index.vue';
 import AssignmentShow from './Pages/Assignments/Show.vue';
@@ -49,6 +50,7 @@ const router = createRouter({
         { path: '/courses/:id/enrollments', alias: '/admin/courses/:id/enrollments', name: 'course-enrollments', component: EnrollmentIndex },
         { path: '/courses/:id/enrollments/create', alias: '/admin/courses/:id/enrollments/create', name: 'enrollment-create', component: EnrollmentForm },
         { path: '/courses/:id', name: 'course', component: CourseShow },
+        { path: '/courses/:id/schedule', name: 'course-schedule', component: CourseSchedule },
         { path: '/courses/:id/assignments', alias: '/dosen/courses/:id/assignments', name: 'course-assignments', component: CourseAssignments },
         { path: '/courses/:id/assignments/create', alias: '/dosen/courses/:id/assignments/create', name: 'assignment-create', component: AssignmentForm, meta: { mode: 'create' } },
         { path: '/assignments/:id/submissions', alias: '/dosen/assignments/:id/submissions', name: 'assignment-submissions', component: AssignmentSubmissions },
@@ -75,7 +77,9 @@ const router = createRouter({
 
 router.beforeEach((to) => {
     const hasToken = Boolean(localStorage.getItem('kampuslms_token'));
-    if (!to.meta.guest && !to.meta.public && !hasToken) return { name: 'login' };
+    if (!to.meta.guest && !to.meta.public && !hasToken) {
+        return { name: 'login', query: { redirect: to.fullPath } };
+    }
     if (to.meta.guest && hasToken) return { name: 'dashboard' };
     return true;
 });
