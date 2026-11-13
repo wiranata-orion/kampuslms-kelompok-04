@@ -44,6 +44,43 @@ class NewAssignmentNotificationTest extends TestCase
         });
     }
 
+    public function test_draft_assignment_does_not_dispatch_published_event(): void
+    {
+        Event::fake([AssignmentPublished::class]);
+
+        $lecturer = User::factory()->dosen()->create();
+        $course = Course::factory()->create(['lecturer_id' => $lecturer->id, 'status' => 'active']);
+
+        $this->actingAs($lecturer, 'sanctum')->postJson('/api/v1/assignments', [
+            'course_id' => $course->id,
+            'title' => 'Tugas Draft',
+            'instructions' => 'Belum dipublikasikan.',
+            'due_at' => now()->addDays(7)->toIso8601String(),
+            'status' => 'draft',
+        ])->assertCreated();
+
+        Event::assertNotDispatched(AssignmentPublished::class);
+    }
+
+    public function test_send_new_assignment_notifications_listener_ignores_draft_assignment(): void
+    {
+        Notification::fake();
+
+        $lecturer = User::factory()->dosen()->create();
+        $course = Course::factory()->create(['lecturer_id' => $lecturer->id, 'status' => 'active']);
+        $student = User::factory()->create();
+        $course->students()->attach($student->id, ['enrolled_at' => now()]);
+        $assignment = Assignment::factory()->create([
+            'course_id' => $course->id,
+            'created_by' => $lecturer->id,
+            'status' => 'draft',
+        ]);
+
+        (new SendNewAssignmentNotifications())->handle(new AssignmentPublished($assignment));
+
+        Notification::assertNothingSent();
+    }
+
     public function test_send_new_assignment_notifications_listener_sends_notification_to_enrolled_students(): void
     {
         Notification::fake();

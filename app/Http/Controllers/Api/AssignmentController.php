@@ -39,7 +39,9 @@ class AssignmentController extends Controller
         $this->applyAssignmentInput($assignment, $validated);
         $assignment->save();
 
-        AssignmentPublished::dispatch($assignment);
+        if ($assignment->status === 'published') {
+            AssignmentPublished::dispatch($assignment);
+        }
 
         return (new AssignmentResource($assignment))->response()->setStatusCode(201);
     }
