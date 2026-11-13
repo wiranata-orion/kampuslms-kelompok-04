@@ -14,19 +14,19 @@ use App\Support\PrivateFiles;
 class AssignmentObserver
 {
     /** @var array<int|string, array<int, string>> */
-    private array $pending = [];
+    private static array $pending = [];
 
     public function deleting(Assignment $assignment): void
     {
-        $this->pending[$assignment->getKey()] = $assignment->submissions()
+        self::$pending[$assignment->getKey()] = $assignment->submissions()
             ->pluck('file_path')
             ->all();
     }
 
     public function deleted(Assignment $assignment): void
     {
-        $paths = $this->pending[$assignment->getKey()] ?? [];
-        unset($this->pending[$assignment->getKey()]);
+        $paths = self::$pending[$assignment->getKey()] ?? [];
+        unset(self::$pending[$assignment->getKey()]);
 
         PrivateFiles::deleteAfterCommit($paths);
     }

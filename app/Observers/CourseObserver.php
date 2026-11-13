@@ -14,7 +14,7 @@ use App\Support\PrivateFiles;
 class CourseObserver
 {
     /** @var array<int|string, array<int, string>> */
-    private array $pending = [];
+    private static array $pending = [];
 
     public function deleting(Course $course): void
     {
@@ -28,13 +28,13 @@ class CourseObserver
             ->pluck('file_path')
             ->all();
 
-        $this->pending[$course->getKey()] = array_merge($materialPaths, $submissionPaths);
+        self::$pending[$course->getKey()] = array_merge($materialPaths, $submissionPaths);
     }
 
     public function deleted(Course $course): void
     {
-        $paths = $this->pending[$course->getKey()] ?? [];
-        unset($this->pending[$course->getKey()]);
+        $paths = self::$pending[$course->getKey()] ?? [];
+        unset(self::$pending[$course->getKey()]);
 
         PrivateFiles::deleteAfterCommit($paths);
     }
