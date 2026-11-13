@@ -1,6 +1,6 @@
 <template>
-    <div class="app-shell" @click="handleDocumentClick">
-        <header v-if="user" class="topbar">
+    <div class="app-shell" :class="{ 'app-shell-dashboard': isDashboard }" @click="handleDocumentClick">
+        <header v-if="user && !isDashboard" class="topbar">
             <RouterLink class="brand" to="/dashboard"><span class="brand-mark">K</span><span>KampusLMS</span></RouterLink>
             <nav class="nav-row">
                 <RouterLink to="/dashboard">Dashboard</RouterLink>
@@ -107,13 +107,15 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import api, { setToken } from './api';
 
 const router = useRouter();
+const route = useRoute();
 const user = ref(null);
 const authError = ref('');
+const isDashboard = computed(() => route.name === 'dashboard');
 
 const notifDropdownRef = ref(null);
 const dropdownOpen = ref(false);
