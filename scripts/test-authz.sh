@@ -146,6 +146,15 @@ echo
 
 expect_public_status "Homepage tersedia" GET / 200
 expect_public_status "Robots tersedia" GET /robots.txt 200 404
+
+# Regression test IDOR reset password: endpoint lama tidak boleh tersedia
+# untuk guest. Payload sengaja dikosongkan agar tes tidak pernah mengubah
+# kata sandi akun sungguhan jika endpoint yang rentan masih aktif.
+expect_status "Endpoint reset password tidak dapat dieksploitasi sebagai IDOR" \
+    POST /auth/reset-password "" 404
+expect_status "Endpoint check-user tidak membocorkan akun" \
+    POST /auth/check-user "" 404
+
 expect_status "API courses menolak guest" GET /courses "" 401
 expect_status "API profile menolak guest" GET /me "" 401
 expect_status "API dashboard menolak guest" GET /dashboard "" 401
