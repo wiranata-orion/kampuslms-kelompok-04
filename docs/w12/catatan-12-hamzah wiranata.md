@@ -21,74 +21,74 @@ Setelah deployment pertama berhasil, tanpa AI:
 2. `php artisan about`
 
 - Di Lokal
-```
-  PS C:\Users\Xufruz\OneDrive\Documents\Kuliah\Semester 5\Pemrograman Web\kelompok-lms> php artisan about
+  ```
+    PS C:\Users\Xufruz\OneDrive\Documents\Kuliah\Semester 5\Pemrograman Web\kelompok-lms> php artisan about
 
-  Environment ...............................................................  
-  Application Name .................................................. Laravel  
-  Laravel Version ................................................... 12.71.0  
-  PHP Version ........................................................ 8.4.13  
-  Composer Version ................................................... 2.10.2  
-  Environment ......................................................... local  
-  Debug Mode ........................................................ ENABLED  
-  URL ........................................................ 127.0.0.1:8000  
-  Maintenance Mode ...................................................... OFF  
-  Timezone .............................................................. UTC  
-  Locale ................................................................. en  
+    Environment ...............................................................  
+    Application Name .................................................. Laravel  
+    Laravel Version ................................................... 12.71.0  
+    PHP Version ........................................................ 8.4.13  
+    Composer Version ................................................... 2.10.2  
+    Environment ......................................................... local  
+    Debug Mode ........................................................ ENABLED  
+    URL ........................................................ 127.0.0.1:8000  
+    Maintenance Mode ...................................................... OFF  
+    Timezone .............................................................. UTC  
+    Locale ................................................................. en  
 
-  Cache .....................................................................  
-  Config ......................................................... NOT CACHED  
-  Events ............................................................. CACHED  
-  Routes ............................................................. CACHED  
-  Views .............................................................. CACHED  
+    Cache .....................................................................  
+    Config ......................................................... NOT CACHED  
+    Events ............................................................. CACHED  
+    Routes ............................................................. CACHED  
+    Views .............................................................. CACHED  
 
-  Drivers ...................................................................  
-  Broadcasting ....................................................... reverb  
-  Cache ................................................................ file  
-  Database ........................................................... sqlite  
-  Logs ....................................................... stack / single  
-  Mail .................................................................. log  
-  Queue ............................................................ database  
-  Session .......................................................... database  
+    Drivers ...................................................................  
+    Broadcasting ....................................................... reverb  
+    Cache ................................................................ file  
+    Database ........................................................... sqlite  
+    Logs ....................................................... stack / single  
+    Mail .................................................................. log  
+    Queue ............................................................ database  
+    Session .......................................................... database  
 
-  Storage ...................................................................  
-  C:\Users\Xufruz\OneDrive\Documents\Kuliah\Semester 5\Pemrograman Web\kelompok-lms\public\storage  NOT LINKED 
-```
+    Storage ...................................................................  
+    C:\Users\Xufruz\OneDrive\Documents\Kuliah\Semester 5\Pemrograman Web\kelompok-lms\public\storage  NOT LINKED 
+  ```
 
 - Di Server
-```
-  root@b24c6cbb370c:/var/www/html# php artisan about
+  ```
+    root@b24c6cbb370c:/var/www/html# php artisan about
 
-  Environment .............................................................................................  
-  Application Name ............................................................................. LaciKampus  
-  Laravel Version ................................................................................. 12.71.0  
-  PHP Version ...................................................................................... 8.4.27  
-  Composer Version ................................................................................. 2.11.2  
-  Environment .................................................................................. production  
-  Debug Mode .......................................................................................... OFF  
-  URL ................................................................ lacikampus-production.up.railway.app  
-  Maintenance Mode .................................................................................... OFF  
-  Timezone ............................................................................................ UTC  
-  Locale ............................................................................................... en  
+    Environment .............................................................................................  
+    Application Name ............................................................................. LaciKampus  
+    Laravel Version ................................................................................. 12.71.0  
+    PHP Version ...................................................................................... 8.4.27  
+    Composer Version ................................................................................. 2.11.2  
+    Environment .................................................................................. production  
+    Debug Mode .......................................................................................... OFF  
+    URL ................................................................ lacikampus-production.up.railway.app  
+    Maintenance Mode .................................................................................... OFF  
+    Timezone ............................................................................................ UTC  
+    Locale ............................................................................................... en  
 
-  Cache ...................................................................................................  
-  Config ....................................................................................... NOT CACHED  
-  Events ....................................................................................... NOT CACHED  
-  Routes ....................................................................................... NOT CACHED  
-  Views ............................................................................................ CACHED  
+    Cache ...................................................................................................  
+    Config ....................................................................................... NOT CACHED  
+    Events ....................................................................................... NOT CACHED  
+    Routes ....................................................................................... NOT CACHED  
+    Views ............................................................................................ CACHED  
 
-  Drivers .................................................................................................  
-  Broadcasting ....................................................................................... null  
-  Cache .......................................................................................... database  
-  Database .......................................................................................... mysql  
-  Logs ..................................................................................... stack / single  
-  Mail ................................................................................................ log  
-  Queue .......................................................................................... database  
-  Session ........................................................................................ database  
+    Drivers .................................................................................................  
+    Broadcasting ....................................................................................... null  
+    Cache .......................................................................................... database  
+    Database .......................................................................................... mysql  
+    Logs ..................................................................................... stack / single  
+    Mail ................................................................................................ log  
+    Queue .......................................................................................... database  
+    Session ........................................................................................ database  
 
-  Storage .................................................................................................  
-  public/storage ............................................................................... NOT LINKED  
-```
+    Storage .................................................................................................  
+    public/storage ............................................................................... NOT LINKED  
+  ```
 - Perbedaannya adalah:
   - production memakai PHP 8.4.27, sedangkan lokal memakai PHP 8.4.13;
   - production memakai environment `production`, debug `OFF`, MySQL, cache
@@ -101,18 +101,27 @@ Setelah deployment pertama berhasil, tanpa AI:
 
 3. Berapa worker yang berjalan
    
-![alt text](image.png) \
-Berdasarkan konsol, hanya ada 1 worker yang sedang berjalan:\
-- Nama Process: laravel-worker:laravel-worker_00\
-- Status: RUNNING (PID 31)\
+    ![alt text](image.png) \
+    Berdasarkan konsol, hanya ada 2 worker yang sedang berjalan:\
+    - Nama Process: laravel-worker:laravel-worker_00\
+    - Status: RUNNING (PID 31)\
 
-Konfigurasi ini sesuai dengan `numprocs=1` pada Supervisor di `Dockerfile`.
+    Konfigurasi ini sesuai dengan `numprocs=1` pada Supervisor di `Dockerfile`.
 
-4. Log production dan jumlah entrinya tidak dapat dihitung dari browser publik.
-   File `storage/logs/laravel.log` berada di dalam container Railway dan
-   memerlukan akses shell atau log service Railway. Karena akses tersebut tidak
-   tersedia dari repository ini, saya tidak mengklaim jumlah entri atau isi
-   terbaru.
+4. File `storage/logs/laravel.log` berisi 954.875 entri dan yang terbaru adalah
+    ```
+    Did you mean one of these?
+        make:test
+        schedule:test at C:/Users/Xufruz/OneDrive/Documents/Kuliah/Semester 5/Pemrograman Web/kelompok-lms/vendor/symfony/console/Application.php:760)
+    [stacktrace]
+    #0 C:/Users/Xufruz/OneDrive/Documents/Kuliah/Semester 5/Pemrograman Web/kelompok-lms/vendor/symfony/console/Application.php(299): Symfony/Component/Console/Application->find()
+    #1 C:/Users/Xufruz/OneDrive/Documents/Kuliah/Semester 5/Pemrograman Web/kelompok-lms/vendor/symfony/console/Application.php(196): Symfony/Component/Console/Application->doRun()
+    #2 C:/Users/Xufruz/OneDrive/Documents/Kuliah/Semester 5/Pemrograman Web/kelompok-lms/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony/Component/Console/Application->run()
+    #3 C:/Users/Xufruz/OneDrive/Documents/Kuliah/Semester 5/Pemrograman Web/kelompok-lms/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate/Foundation/Console/Kernel->handle()
+    #4 C:/Users/Xufruz/OneDrive/Documents/Kuliah/Semester 5/Pemrograman Web/kelompok-lms/artisan(16): Illuminate/Foundation/Application->handleCommand()
+    #5 {main}
+    "} 
+    ```
 
 5. Pada verifikasi terakhir, tiga pemeriksaan HTTP berikut dijalankan:
 
