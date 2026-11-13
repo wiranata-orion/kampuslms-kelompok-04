@@ -159,7 +159,7 @@ Akses aplikasi di browser melalui URL: **`http://127.0.0.1:8000`**
 ```shell
 composer run dev
 ```
-*(Perintah ini akan mengeksekusi server backend dan Vite compiler sekaligus dalam satu terminal).*
+*(Perintah ini akan menghapus cache konfigurasi lokal terlebih dahulu, lalu mengeksekusi server backend, queue worker, dan Vite compiler sekaligus dalam satu terminal. Jangan menjalankan `php artisan config:cache` pada environment lokal sebelum menjalankan tes; gunakan `php artisan config:clear` setelahnya.)*
 
 ---
 

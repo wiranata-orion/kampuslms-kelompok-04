@@ -18,6 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->trustProxies(
+            at: 'REMOTE_ADDR',
+            headers: Request::HEADER_X_FORWARDED_PROTO,
+        );
+
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
         ]);

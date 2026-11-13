@@ -15,7 +15,6 @@ use App\Models\Submission;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 
 class AssignmentController extends Controller
 {
@@ -40,7 +39,9 @@ class AssignmentController extends Controller
         $this->applyAssignmentInput($assignment, $validated);
         $assignment->save();
 
-        AssignmentPublished::dispatch($assignment);
+        if ($assignment->status === 'published') {
+            AssignmentPublished::dispatch($assignment);
+        }
 
         return (new AssignmentResource($assignment))->response()->setStatusCode(201);
     }
@@ -103,12 +104,14 @@ class AssignmentController extends Controller
         if ($request->hasFile('file')) {
             $file = $request->file('file');
 
-            // Hapus file lama hanya JIKA file baru berhasil diunggah
-            if ($existing?->file_path) {
-                Storage::disk('local')->delete($existing->file_path);
+            // Simpan berkas baru terlebih dahulu. Berkas lama dibersihkan oleh
+            // SubmissionObserver setelah update database berhasil di-commit.
+            $newFilePath = $file->store("submissions/{$assignment->id}", 'local');
+            if (! is_string($newFilePath) || $newFilePath === '') {
+                abort(500, 'Berkas tugas gagal disimpan.');
             }
 
-            $dataToUpdate['file_path'] = $file->store("submissions/{$assignment->id}", 'local');
+            $dataToUpdate['file_path'] = $newFilePath;
             $dataToUpdate['original_name'] = $file->getClientOriginalName();
             $dataToUpdate['file_size'] = $file->getSize();
         }
