@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\CourseEnrollmentController;
+use App\Http\Controllers\Api\CourseScheduleController;
+use App\Http\Controllers\Api\CourseSessionController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DirectResetPasswordController;
 use App\Http\Controllers\Api\GradeSummaryController;
@@ -76,6 +78,9 @@ Route::prefix('v1')->name('api.v1.')->middleware($apiRateLimitMiddleware)->group
 
         Route::scopeBindings()->group(function () {
             Route::get('/courses/{course}/grade-summary', [GradeSummaryController::class, 'course'])->name('courses.grades.summary');
+            Route::get('/courses/{course}/schedules', [CourseScheduleController::class, 'index'])->name('courses.schedules.index');
+            Route::post('/courses/{course}/schedules', [CourseScheduleController::class, 'store'])->name('courses.schedules.store');
+            Route::get('/courses/{course}/sessions', [CourseSessionController::class, 'index'])->name('courses.sessions.index');
 
             // Enrollment management (admin & course lecturer via policy)
             Route::get('/courses/{course}/enrollments/candidates', [CourseEnrollmentController::class, 'candidates'])->name('courses.enrollments.candidates');
@@ -92,6 +97,11 @@ Route::prefix('v1')->name('api.v1.')->middleware($apiRateLimitMiddleware)->group
             Route::get('/assignments/{assignment}/submissions', [AssignmentController::class, 'submissions'])->name('assignments.submissions');
             Route::post('/assignments/{assignment}/submissions', [AssignmentController::class, 'submit'])->name('assignments.submit');
         });
+
+        Route::put('/course-schedules/{courseSchedule}', [CourseScheduleController::class, 'update'])->name('course-schedules.update');
+        Route::delete('/course-schedules/{courseSchedule}', [CourseScheduleController::class, 'destroy'])->name('course-schedules.destroy');
+        Route::get('/sessions/{courseSession}/attendance-code', [CourseSessionController::class, 'attendanceCode'])->name('sessions.attendance-code');
+        Route::post('/sessions/{courseSession}/attendance', [CourseSessionController::class, 'attend'])->name('sessions.attendance');
 
         // Materials shallow routes
         Route::get('/materials/{material}', [MaterialController::class, 'show'])->name('materials.show');
