@@ -38,7 +38,9 @@ class CoursePolicy
         return $user->role === 'admin'
             && ! $course->students()->exists()
             && ! $course->materials()->exists()
-            && ! $course->assignments()->exists();
+            && ! $course->assignments()->exists()
+            && ! $course->schedules()->exists()
+            && ! $course->sessions()->exists();
     }
 
     public function manageEnrollment(User $user, Course $course): bool
