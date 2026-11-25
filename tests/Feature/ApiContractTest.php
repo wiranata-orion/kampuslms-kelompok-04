@@ -17,6 +17,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -39,6 +40,28 @@ class ApiContractTest extends TestCase
             ->assertStatus(422)
             ->assertJsonPath('message', 'Data yang diberikan tidak valid.')
             ->assertJsonStructure(['message', 'errors' => ['email', 'password']]);
+    }
+
+    public function test_login_rejects_wrong_password_and_unknown_email_with_the_same_error(): void
+    {
+        $user = User::factory()->create(['email' => 'known-user@example.test']);
+
+        $wrongPassword = $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'incorrect-password',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['email']);
+
+        $unknownEmail = $this->postJson('/api/v1/auth/login', [
+            'email' => 'unknown-user@example.test',
+            'password' => 'incorrect-password',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['email']);
+
+        $this->assertSame(
+            $wrongPassword->json('errors.email'),
+            $unknownEmail->json('errors.email'),
+        );
     }
 
     public function test_password_reset_endpoints_are_not_exposed_without_verification(): void
@@ -112,6 +135,8 @@ class ApiContractTest extends TestCase
 
         $this->withToken($token)->postJson('/api/v1/auth/logout')->assertOk();
         $this->assertDatabaseCount('personal_access_tokens', 0);
+        Auth::forgetGuards();
+        $this->withToken($token)->getJson('/api/v1/me')->assertUnauthorized();
     }
 
     public function test_course_collections_are_scoped_and_include_counts_and_lecturer(): void
