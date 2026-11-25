@@ -176,7 +176,6 @@ class AuthorizationPolicyTest extends TestCase
         $lecturer = User::factory()->dosen()->create();
         $otherLecturer = User::factory()->dosen()->create();
         $student = User::factory()->create();
-        $otherStudent = User::factory()->create();
         $course = $this->createCourse($lecturer, 'AUTH350');
 
         $this->actingAs($lecturer, 'sanctum')
@@ -192,7 +191,7 @@ class AuthorizationPolicyTest extends TestCase
         $this->actingAs($otherLecturer, 'sanctum')
             ->getJson('/api/v1/courses/'.$course->id.'/students')
             ->assertForbidden();
-        $this->postJson('/api/v1/courses/'.$course->id.'/enrollments', ['user_id' => $otherStudent->id])
+        $this->postJson('/api/v1/courses/'.$course->id.'/enrollments', ['user_id' => $student->id])
             ->assertForbidden();
         $this->deleteJson('/api/v1/courses/'.$course->id.'/enrollments/'.$student->id)
             ->assertForbidden();
