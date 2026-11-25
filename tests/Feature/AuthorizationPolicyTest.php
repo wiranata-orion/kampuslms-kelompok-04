@@ -48,6 +48,33 @@ class AuthorizationPolicyTest extends TestCase
         $this->assertNotSame($activeCourse->id, $otherCourse->id);
     }
 
+    public function test_admin_only_endpoints_reject_lecturers_and_students(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $lecturer = User::factory()->dosen()->create();
+        $student = User::factory()->create();
+        $course = $this->createCourse($lecturer, 'AUTH151');
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/users')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 3);
+
+        foreach ([$lecturer, $student] as $unauthorizedUser) {
+            $this->actingAs($unauthorizedUser, 'sanctum')
+                ->getJson('/api/v1/users')
+                ->assertForbidden();
+            $this->postJson('/api/v1/users', [])
+                ->assertForbidden();
+            $this->postJson('/api/v1/courses', [])
+                ->assertForbidden();
+            $this->putJson('/api/v1/courses/'.$course->id, [])
+                ->assertForbidden();
+            $this->deleteJson('/api/v1/courses/'.$course->id)
+                ->assertForbidden();
+        }
+    }
+
     public function test_student_cannot_read_nonmember_content_archived_courses_or_draft_assignments(): void
     {
         $lecturer = User::factory()->dosen()->create();
@@ -69,14 +96,61 @@ class AuthorizationPolicyTest extends TestCase
         $this->getJson('/api/v1/courses/'.$course->id.'/assignments')
             ->assertOk()
             ->assertJsonPath('meta.total', 0);
+        $this->getJson('/api/v1/courses/'.$course->id.'/materials')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1);
         $this->getJson('/api/v1/assignments/'.$draft->id)
             ->assertForbidden();
         $this->getJson('/api/v1/materials/'.$material->id)
             ->assertOk();
 
         $this->actingAs($outsider, 'sanctum')
-            ->getJson('/api/v1/materials/'.$material->id)
+            ->getJson('/api/v1/courses/'.$course->id.'/assignments')
             ->assertForbidden();
+        $this->getJson('/api/v1/courses/'.$course->id.'/materials')
+            ->assertForbidden();
+        $this->getJson('/api/v1/materials/'.$material->id)
+            ->assertForbidden();
+    }
+
+    public function test_unavailable_submission_and_grade_mutation_routes_stay_unregistered(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $lecturer = User::factory()->dosen()->create();
+        $student = User::factory()->create();
+        $course = $this->createCourse($lecturer, 'AUTH251');
+        $assignment = $this->createAssignment($course, $lecturer, 'published');
+        $submission = $this->createSubmission($assignment, $student);
+        $grade = $this->createGrade($submission, $lecturer);
+
+        $this->actingAs($admin, 'sanctum')
+            ->putJson('/api/v1/submissions/'.$submission->id, ['note' => 'ubah'])
+            ->assertStatus(405);
+        $this->deleteJson('/api/v1/submissions/'.$submission->id)
+            ->assertStatus(405);
+        $this->deleteJson('/api/v1/grades/'.$grade->id)
+            ->assertStatus(405);
+
+        $this->assertDatabaseHas('submissions', ['id' => $submission->id]);
+        $this->assertDatabaseHas('grades', ['id' => $grade->id]);
+    }
+
+    public function test_student_cannot_read_or_change_course_enrollments(): void
+    {
+        $lecturer = User::factory()->dosen()->create();
+        $student = User::factory()->create();
+        $course = $this->createCourse($lecturer, 'AUTH351');
+        $course->students()->attach($student->id, ['enrolled_at' => now()]);
+
+        $this->actingAs($student, 'sanctum')
+            ->getJson('/api/v1/courses/'.$course->id.'/students')
+            ->assertForbidden();
+        $this->deleteJson('/api/v1/courses/'.$course->id.'/enrollments/'.$student->id)
+            ->assertForbidden();
+        $this->assertDatabaseHas('course_user', [
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+        ]);
     }
 
     public function test_admin_deletion_is_blocked_when_course_or_assignment_has_restricted_data(): void
@@ -117,6 +191,14 @@ class AuthorizationPolicyTest extends TestCase
         $this->actingAs($otherLecturer, 'sanctum')
             ->getJson('/api/v1/courses/'.$course->id.'/students')
             ->assertForbidden();
+        $this->postJson('/api/v1/courses/'.$course->id.'/enrollments', ['user_id' => $student->id])
+            ->assertForbidden();
+        $this->deleteJson('/api/v1/courses/'.$course->id.'/enrollments/'.$student->id)
+            ->assertForbidden();
+        $this->assertDatabaseHas('course_user', [
+            'course_id' => $course->id,
+            'user_id' => $student->id,
+        ]);
     }
 
     public function test_submission_cross_role_idor_draft_duplicate_and_no_revision_scenarios(): void
